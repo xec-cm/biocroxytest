@@ -2,7 +2,7 @@
 test_that("verify_longtests_used returns TRUE when 'longtests' directory exists", {
   # Create a temporary directory for testing
   old <- setwd(tempdir())
-  dir.create("longtests", recursive = TRUE, showWarnings = FALSE)
+  dir.create("longtests/testhat", recursive = TRUE, showWarnings = FALSE)
 
   # Test the function
   expect_true(verify_longtests_used())

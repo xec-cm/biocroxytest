@@ -27,6 +27,7 @@ BugReports: https://github.com/xec-cm/biocroxytest/issues
 biocViews: Software, Infrastructure
 Imports: 
     cli,
+    devtools,
     glue,
     roxygen2,
     stringr

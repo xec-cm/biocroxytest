@@ -2,7 +2,7 @@ test_that("roclet_output.roclet_longtests returns correct paths", {
 
   # Setup:
   base_path <- tempdir()
-  longtests_path <- file.path(base_path, "longtests")
+  longtests_path <- file.path(base_path, "longtests", "testthat")
   unlink(longtests_path, recursive = TRUE, force = TRUE)
   results <- roxygen2::roc_proc_text(longtests_roclet(), "
     #' Summing two numbers

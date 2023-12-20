@@ -1,6 +1,6 @@
 test_that("made_by_biocroxytest works correctly", {
   # Set up
-  temp_dir <- paste0(tempdir(), "/longtests")
+  temp_dir <- paste0(tempdir(), "/longtests/testthat")
   dir.create(temp_dir, recursive = TRUE, showWarnings = FALSE)
   path <- here::here(temp_dir, "test-biocroxytest-example.R")
 

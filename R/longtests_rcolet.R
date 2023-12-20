@@ -142,7 +142,7 @@ roclet_output.roclet_longtests <- function(x, results, base_path, ...) {
   # Has side-effects: writes files to disk
   paths_longtests <- internal_longtests_roclet_output(
     results = results$longtests,
-    base_path = normalizePath(file.path(base_path, "longtests")),
+    base_path = normalizePath(file.path(base_path, "longtests", "testthat")),
     prefix = "test-biocroxytest-longtests-"
   )
 
@@ -183,7 +183,7 @@ roclet_clean.roclet_longtests <- function(x, base_path) {
   verify_longtests_used(base_path)
 
   testfiles <- dir(
-    path = file.path(base_path, "longtests"),
+    path = file.path(base_path, "longtests", "testthat"),
     pattern = "^test-biocroxytest-.*\\.[Rr]$",
     full.names = TRUE
   )
