@@ -1,13 +1,30 @@
 Package: biocroxytest
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Handle Long Tests in Bioconductor Packages
+Version: 0.99.0
 Authors@R: 
-    person("Francesc", "Catala-Moll", , "fcatalamoll@gmail.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    c(person(given = "Francesc",
+             family = "Catala-Moll",
+             role = c("aut", "cre"),
+             email = "fcatala@irsicaixa.es",
+             comment = c(ORCID = "0000-0002-2354-8648"))
+    )
+Description: This package provides a roclet for roxygen2 that identifies and 
+    processes code blocks in your documentation marked with `@longtests`. These
+    blocks should contain tests that take a long time to run and thus cannot be 
+    included in the regular test suite of the package. When you run 
+    `roxygen2::roxygenise` with the `longtests_roclet`, it will extract these 
+    long tests from your documentation and save them in a separate directory.
+    This allows you to run these long tests separately from the rest of your 
+    tests, for example, on a continuous integration server that is set up to 
+    run long tests.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("rd", "collate", "namespace"))
 RoxygenNote: 7.2.3
+URL: https://github.com/xec-cm/biocroxytest,
+     https://xec-cm.github.io/biocroxytest/
+BugReports: https://github.com/xec-cm/biocroxytest/issues
+biocViews: Software, Testing, ReportWriting
 Imports: 
     cli,
     glue,
@@ -15,5 +32,10 @@ Imports:
     stringr
 Suggests: 
     here,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+Depends: R (>= 4.4.0)
 Config/testthat/edition: 3
+Config/testthat/parallel: true
+VignetteBuilder: knitr
