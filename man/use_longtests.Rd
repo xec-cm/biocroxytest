@@ -12,3 +12,6 @@ Invisible
 \description{
 Creates longtests/testthat directory and longtests/testthat.R file.
 }
+\examples{
+use_longtests()
+}

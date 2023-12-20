@@ -6,6 +6,8 @@
 #'
 #' @return Invisible
 #' @export
+#' @examples
+#' use_longtests()
 use_longtests <- function() {
   setup_bboptions()
   setup_longtetsts()
@@ -16,7 +18,7 @@ use_longtests <- function() {
 setup_longtetsts <- function() {
   path <- file.path("longtests", "testthat")
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  if (devtools::uses_testthat()) {
+  if (file.exists(file.path("tests", "testthat.R"))) {
     file.copy(
       file.path("tests", "testthat.R"),
       file.path("longtests", "testthat.R"),

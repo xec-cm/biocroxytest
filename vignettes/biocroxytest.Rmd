@@ -46,6 +46,6 @@ robust and efficient code.
 ## Session info
 
 ```{r}
-devtools::session_info()
+utils::sessionInfo()
 ```
 
