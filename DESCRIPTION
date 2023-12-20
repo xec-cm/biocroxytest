@@ -31,6 +31,7 @@ Imports:
     roxygen2,
     stringr
 Suggests: 
+    BiocStyle,
     here,
     knitr,
     rmarkdown,
