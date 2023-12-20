@@ -1,0 +1,19 @@
+Package: biocroxytest
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person("Francesc", "Catala-Moll", , "fcatalamoll@gmail.com", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE, roclets = c("rd", "collate", "namespace"))
+RoxygenNote: 7.2.3
+Imports: 
+    cli,
+    glue,
+    roxygen2,
+    stringr
+Suggests: 
+    here,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
