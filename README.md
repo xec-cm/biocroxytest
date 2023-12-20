@@ -13,14 +13,14 @@ new roclet, `@longtests`. This innovative feature allows developers to
 document and store these long tests directly in their `roxygen2`
 comments.
 
-With `biocroxytest`, developers can now write comprehensive tests
-without worrying about slowing down the daily build process. The
-`@longtests` roclet provides a dedicated space for these extensive
-tests, ensuring they are easily accessible and well-documented. This
-approach not only improves the reliability of the package but also
-enhances its maintainability. Developers can easily locate, understand,
-and update these long tests as needed, leading to more robust and
-efficient code.
+With *[biocroxytest](https://github.com/xec-cm/biocroxytest)*,
+developers can now write comprehensive tests without worrying about
+slowing down the daily build process. The `@longtests` roclet provides a
+dedicated space for these extensive tests, ensuring they are easily
+accessible and well-documented. This approach not only improves the
+reliability of the package but also enhances its maintainability.
+Developers can easily locate, understand, and update these long tests as
+needed, leading to more robust and efficient code.
 
 ## Installation instructions
 
@@ -110,7 +110,8 @@ test_that("Function bar() @ L27", {
 
 ## Code of Conduct
 
-Please note that the `biocroxytest` project is released with a
-[Contributor Code of
+Please note that the
+*[biocroxytest](https://github.com/xec-cm/biocroxytest)* project is
+released with a [Contributor Code of
 Conduct](http://bioconductor.org/about/code-of-conduct/). By
 contributing to this project, you agree to abide by its terms.
