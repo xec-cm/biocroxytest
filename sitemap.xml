@@ -1,57 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/404.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/404.html</loc>
   </url>
   <url>
-    <loc>/LICENSE.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/LICENSE.html</loc>
   </url>
   <url>
-    <loc>/articles/biocroxytest.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html</loc>
   </url>
   <url>
-    <loc>/articles/index.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/articles/index.html</loc>
   </url>
   <url>
-    <loc>/authors.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/authors.html</loc>
   </url>
   <url>
-    <loc>/index.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/index.html</loc>
   </url>
   <url>
-    <loc>/reference/block_to_testthat.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/news/index.html</loc>
   </url>
   <url>
-    <loc>/reference/index.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/block_to_testthat.html</loc>
   </url>
   <url>
-    <loc>/reference/internal_longtests_roclet_clean.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/index.html</loc>
   </url>
   <url>
-    <loc>/reference/internal_longtests_roclet_process.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/internal_longtests_roclet_clean.html</loc>
   </url>
   <url>
-    <loc>/reference/longtests_roclet.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/internal_longtests_roclet_output.html</loc>
   </url>
   <url>
-    <loc>/reference/made_by_biocroxytest.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/internal_longtests_roclet_process.html</loc>
   </url>
   <url>
-    <loc>/reference/process_testfiles.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/longtests_roclet.html</loc>
   </url>
   <url>
-    <loc>/reference/roclet_clean.roclet_longtests.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/made_by_biocroxytest.html</loc>
   </url>
   <url>
-    <loc>/reference/roclet_output.roclet_longtests.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/process_testfiles.html</loc>
   </url>
   <url>
-    <loc>/reference/roclet_process.roclet_longtests.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/roclet_clean.roclet_longtests.html</loc>
   </url>
   <url>
-    <loc>/reference/roxy_tag_parse.roxy_tag_longtests.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/roclet_output.roclet_longtests.html</loc>
   </url>
   <url>
-    <loc>/reference/verify_longtests_used.html</loc>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/roclet_process.roclet_longtests.html</loc>
+  </url>
+  <url>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/roxy_tag_parse.roxy_tag_longtests.html</loc>
+  </url>
+  <url>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/use_longtests.html</loc>
+  </url>
+  <url>
+    <loc>https://xec-cm.github.io/biocroxytest/reference/verify_longtests_used.html</loc>
   </url>
 </urlset>
