@@ -15,6 +15,16 @@ knitr::opts_chunk$set(
 
 # biocroxytest
 
+<!-- badges: start -->
+[![Bioc release status](http://www.bioconductor.org/shields/build/release/bioc/biocroxytest.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/biocroxytest)
+[![Bioc devel status](http://www.bioconductor.org/shields/build/devel/bioc/biocroxytest.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/biocroxytest)
+[![Bioc downloads rank](https://bioconductor.org/shields/downloads/release/biocroxytest.svg)](http://bioconductor.org/packages/stats/bioc/biocroxytest/)
+[![Bioc support](https://bioconductor.org/shields/posts/biocroxytest.svg)](https://support.bioconductor.org/tag/biocroxytest)
+[![Bioc history](https://bioconductor.org/shields/years-in-bioc/biocroxytest.svg)](https://bioconductor.org/packages/release/bioc/html/biocroxytest.html#since)
+[![Bioc last commit](https://bioconductor.org/shields/lastcommit/devel/bioc/biocroxytest.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/biocroxytest/)
+[![Bioc dependencies](https://bioconductor.org/shields/dependencies/release/biocroxytest.svg)](https://bioconductor.org/packages/release/bioc/html/biocroxytest.html#since)
+<!-- badges: end -->
+
 `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` is an R package inspired by 
 `r BiocStyle::Githubpkg("mikldk/roxytest")`. It is specifically designed for 
 the development of Bioconductor packages that require tests with high execution 
