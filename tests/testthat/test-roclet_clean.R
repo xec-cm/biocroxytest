@@ -2,7 +2,7 @@ test_that("roclet_clean.roclet_longtests cleans up longtests directory", {
   # Setup:
   base_path <- tempdir()
   longtests_path <- file.path(base_path, "longtests", "testthat")
-  unlink(longtests_path, recursive = TRUE, force = TRUE)
+  unlink(base_path, recursive = TRUE, force = TRUE)
 
   # Check error when longtests directory does not exist
   expect_error(roclet_clean.roclet_longtests(NULL, base_path))
