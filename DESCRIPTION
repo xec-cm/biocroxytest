@@ -24,7 +24,7 @@ RoxygenNote: 7.2.3
 URL: https://github.com/xec-cm/biocroxytest,
      https://xec-cm.github.io/biocroxytest/
 BugReports: https://github.com/xec-cm/biocroxytest/issues
-biocViews: Software, Testing, ReportWriting
+biocViews: Software, Infrastructure
 Imports: 
     cli,
     glue,

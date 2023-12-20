@@ -1,11 +1,10 @@
 ---
-title: "Introduction to dar"
+title: "Introduction to biocroxytest"
 output: rmarkdown::html_vignette
 description: |
-  Start here if this is your first time using dar! You will learn about basic 
-  usage, steps, exploration and bakes.  
+  Start here if this is your first time using biocroxytest! You will learn about     basic usage.
 vignette: >
-  %\VignetteIndexEntry{Introduction to dar}
+  %\VignetteIndexEntry{Introduction to biocroxytest}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -24,6 +23,7 @@ knitr::opts_chunk$set(
 )
 options(digits = 3)
 ```
+
 # Introduction
 
 `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` is an R package inspired by 
@@ -42,3 +42,10 @@ accessible and well-documented. This approach not only improves the reliability
 of the package but also enhances its maintainability. Developers can easily 
 locate, understand, and update these long tests as needed, leading to more 
 robust and efficient code.
+
+## Session info
+
+```{r}
+devtools::session_info()
+```
+

@@ -1,15 +1,21 @@
+#' @param x A character vector
+#'
 #' @noRd
 #' @keywords internal
 indent_text <- function(x) {
   paste0("  ", gsub("\n", "\n  ", x, fixed = TRUE))
 }
 
+#' @param x A character vector`
+#'
 #' @noRd
 #' @keywords internal
 prepare_tests <- function(x) {
   gsub("^\\s*(.*?)\\s*$", "\\1", x)
 }
 
+#' @param x A character vector
+#'
 #' @noRd
 #' @keywords internal
 auto_quote <- function(x) {
@@ -18,6 +24,8 @@ auto_quote <- function(x) {
   x
 }
 
+#' @param blocks A list of roxygen2 blocks
+#'
 #' @noRd
 #' @keywords internal
 collect_annotate_rdname <- function(blocks) {
@@ -194,6 +202,20 @@ internal_longtests_roclet_process <- function(blocks, ...) {
                                      add_context_header = FALSE))
 }
 
+#' Write long test results to files
+#'
+#' This function takes three arguments: results, base_path, and prefix. The
+#' function iterates over the elements of results and writes the content of each
+#' element to a file in the directory specified by base_path and prefix. If the
+#' file was not created by biocroxytest, the function informs the user that some
+#' files were not removed.
+#'
+#' @param results A list of results.
+#' @param base_path The base path where the files will be written.
+#' @param prefix The prefix that will be used to name the files.
+#'
+#' @return A list of file paths.
+#' @keywords internal
 internal_longtests_roclet_output <- function(results,
                                              base_path,
                                              prefix = "test-biocroxytest") {
@@ -234,7 +256,7 @@ internal_longtests_roclet_output <- function(results,
 #' @param testfiles A character vector representing the paths of the test files
 #'   to check and clean.
 #'
-#' @return NULL
+#' @return invisible
 #' @keywords internal
 internal_longtests_roclet_clean <- function(testfiles) {
   testfiles <- testfiles[!file.info(testfiles)$isdir]

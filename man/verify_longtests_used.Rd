@@ -17,3 +17,4 @@ This function checks if the directory "longtests" exists in the current
 package. If it does not exist, the function will throw an error message and
 suggest setting it up using the \code{biocroxytest::use_longtests()} function.
 }
+\keyword{internal}

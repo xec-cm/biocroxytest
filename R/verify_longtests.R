@@ -7,6 +7,7 @@
 #' @param base_path The base path of the package.
 #'
 #' @return TRUE if "longtests" directory exists, FALSE otherwise.
+#' @keywords internal
 verify_longtests_used <- function(base_path = ".") {
   if (!dir.exists(file.path(base_path, "longtests"))) {
     cli::cli_abort(c(

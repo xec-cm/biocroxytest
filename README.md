@@ -5,20 +5,17 @@
 
 <!-- badges: start -->
 
-[![Bioc release
-status](http://www.bioconductor.org/shields/build/release/bioc/biocroxytest.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/biocroxytest)
-[![Bioc devel
-status](http://www.bioconductor.org/shields/build/devel/bioc/biocroxytest.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/biocroxytest)
-[![Bioc downloads
-rank](https://bioconductor.org/shields/downloads/release/biocroxytest.svg)](http://bioconductor.org/packages/stats/bioc/biocroxytest/)
-[![Bioc
-support](https://bioconductor.org/shields/posts/biocroxytest.svg)](https://support.bioconductor.org/tag/biocroxytest)
-[![Bioc
-history](https://bioconductor.org/shields/years-in-bioc/biocroxytest.svg)](https://bioconductor.org/packages/release/bioc/html/biocroxytest.html#since)
-[![Bioc last
-commit](https://bioconductor.org/shields/lastcommit/devel/bioc/biocroxytest.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/biocroxytest/)
-[![Bioc
-dependencies](https://bioconductor.org/shields/dependencies/release/biocroxytest.svg)](https://bioconductor.org/packages/release/bioc/html/biocroxytest.html#since)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![R-CMD-check](https://github.com/xec-cm/biocroxytest/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/xec-cm/biocroxytest/actions)
+[![Codecov test
+coverage](https://codecov.io/gh/xec-cm/biocroxytest/branch/devel/graph/badge.svg)](https://app.codecov.io/gh/xec-cm/biocroxytest?branch=devel)
+[![PRs
+Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
+[![GitHub
+issues](https://img.shields.io/github/issues/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/issues)
+[![GitHub
+pulls](https://img.shields.io/github/issues-pr/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/pulls)
 <!-- badges: end -->
 
 *[biocroxytest](https://github.com/xec-cm/biocroxytest)* is an R package
@@ -125,6 +122,20 @@ test_that("Function bar() @ L27", {
   expect_equal(bar("A", "B"), paste("A", "B", sep = "/"))
 })
 ```
+
+## Contributing
+
+- If you think you have encountered a bug, please [submit an
+  issue](https://github.com/xec-cm/biocroxytest/issues).
+
+- Either way, learn how to create and share a
+  [reprex](https://reprex.tidyverse.org/articles/articles/learn-reprex.html)
+  (a minimal, reproducible example), to clearly communicate about your
+  code.
+
+- Working on your first Pull Request? You can learn how from this *free*
+  series [How to Contribute to an Open Source Project on
+  GitHub](https://kcd.im/pull-request)
 
 ## Code of Conduct
 

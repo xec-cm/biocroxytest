@@ -1,0 +1,5 @@
+url: https://xec-cm.github.io/biocroxytest/
+template:
+  bootstrap: 5
+  bootswatch: minty
+
