@@ -222,7 +222,10 @@ internal_longtests_roclet_output <- function(results,
 
   paths <- names(results)
   for (i in seq_along(results)) {
-    path <- file.path(base_path, paste0(prefix, paths[i]))
+    path <- normalizePath(
+      file.path(base_path, paste0(prefix, paths[i])),
+      mustWork = FALSE
+    )
 
     if (!made_by_biocroxytest(path)) {
       cli::cli_inform(c(
