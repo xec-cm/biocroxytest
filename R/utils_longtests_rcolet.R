@@ -239,8 +239,7 @@ internal_longtests_roclet_output <- function(results,
 
     content <- results[[i]]
 
-    # useBytes = TRUE not working on Windows
-    writeLines(text = enc2utf8(content), con = path, useBytes = FALSE)
+    writeLines(text = enc2utf8(content), con = path, useBytes = TRUE)
   }
 
   paths

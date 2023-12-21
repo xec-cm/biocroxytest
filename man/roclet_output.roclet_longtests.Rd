@@ -30,7 +30,7 @@ header.
 \examples{
 # Set up a temporary directory
 base_path <- tempdir()
-longtests_path <- file.path(base_path, "longtests")
+longtests_path <- file.path(base_path, "longtests", "testthat")
 unlink(longtests_path, recursive = TRUE, force = TRUE)
 dir.create(longtests_path, recursive = TRUE, showWarnings = FALSE)
 
