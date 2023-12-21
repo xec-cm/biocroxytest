@@ -15,6 +15,10 @@ test_that("use_longtests works as expected", {
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 })
 
 test_that("setup_bboptions works as expected", {
@@ -31,6 +35,10 @@ test_that("setup_bboptions works as expected", {
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 })
 
 test_that("setup_bboptions handles existing .BBSoptions with RunLongTests: FALSE", {
@@ -53,6 +61,10 @@ test_that("setup_bboptions handles existing .BBSoptions with RunLongTests: FALSE
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 })
 
 test_that("setup_bboptions handles existing .BBSoptions with RunLongTests: TRUE", {
@@ -75,6 +87,10 @@ test_that("setup_bboptions handles existing .BBSoptions with RunLongTests: TRUE"
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 })
 
 test_that("setup_bboptions handles existing .BBSoptions with no RunLongTests correctly", {
@@ -97,6 +113,10 @@ test_that("setup_bboptions handles existing .BBSoptions with no RunLongTests cor
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 })
 
 test_that("use_longtests works as expected when test folder exists", {
@@ -134,5 +154,10 @@ test_that("use_longtests works as expected when test folder exists", {
   # Check the content of .BBSoptions
   lines <- readLines(".BBSoptions")
   expect_true(any(stringr::str_detect(lines, "RunLongTests: TRUE")))
+
+  # Clean up
+  unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+  unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
+  unlink(file.path("tests"), recursive = TRUE, force = TRUE)
 })
 
