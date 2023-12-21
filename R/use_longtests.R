@@ -7,7 +7,12 @@
 #' @return Invisible
 #' @export
 #' @examples
+#' # Create the longtests directory and .BBSoptions file
 #' use_longtests()
+#'
+#' # Remove the longtests directory and .BBSoptions file
+#' unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+#' unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 use_longtests <- function() {
   setup_bboptions()
   setup_longtetsts()

@@ -13,5 +13,10 @@ Invisible
 Creates longtests/testthat directory and longtests/testthat.R file.
 }
 \examples{
+# Create the longtests directory and .BBSoptions file
 use_longtests()
+
+# Remove the longtests directory and .BBSoptions file
+unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
+unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
 }
