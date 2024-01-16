@@ -2,18 +2,23 @@
 title: "Introduction to biocroxytest"
 output: rmarkdown::html_vignette
 description: |
-  Start here if this is your first time using biocroxytest! You will learn about     basic usage.
+  Start here if this is your first time using biocroxytest! You will learn about     
+  basic usage.
 vignette: >
   %\VignetteIndexEntry{Introduction to biocroxytest}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
+```{=html}
 <style>
 body {
 text-align: justify}
 </style>
-
+```
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   message = FALSE,
@@ -26,26 +31,27 @@ options(digits = 3)
 
 # Introduction
 
-`r BiocStyle::Githubpkg("xec-cm/biocroxytest")` is an R package inspired by 
-`r BiocStyle::Githubpkg("mikldk/roxytest")`. It is specifically designed for 
-the development of Bioconductor packages that require tests with high execution 
-times. 
+`r BiocStyle::Githubpkg("xec-cm/biocroxytest")` is an R package inspired
+by `r BiocStyle::Githubpkg("mikldk/roxytest")`. It is specifically
+designed for the development of Bioconductor packages that require tests
+with high execution times (longtests).
 
-This package extends the functionality of `roxytest` by introducing a new 
-roclet, `@longtests`. This innovative feature allows developers to document and 
-store these long tests directly in their `roxygen2` comments. 
+This package extends the functionality of `roxytest` by introducing a
+new roclet, `@longtests`. This innovative feature allows developers to
+document and store these long tests directly in their `roxygen2`
+comments.
 
-With `biocroxytest`, developers can now write comprehensive tests without 
-worrying about slowing down the daily build process. The `@longtests` roclet
-provides a dedicated space for these extensive tests, ensuring they are easily 
-accessible and well-documented. This approach not only improves the reliability 
-of the package but also enhances its maintainability. Developers can easily 
-locate, understand, and update these long tests as needed, leading to more 
-robust and efficient code.
+With `biocroxytest`, developers can now write comprehensive tests
+without worrying about slowing down the daily build process. The
+`@longtests` roclet provides a dedicated space for these extensive
+tests, ensuring they are easily accessible and well-documented. This
+approach not only improves the reliability of the package but also
+enhances its maintainability. Developers can easily locate, understand,
+and update these long tests as needed, leading to more robust and
+efficient code.
 
 ## Session info
 
 ```{r}
 utils::sessionInfo()
 ```
-

@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# biocroxytest
+# biocroxytest <a href="https://xec-cm.github.io/biocroxytest/"><img src="man/figures/logo.png" align="right" height="133" alt="biocroxytest website" /></a>
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
@@ -124,6 +124,7 @@ test_that("Function bar() @ L27", {
   expect_equal(bar("A", "B"), paste("A", "B", sep = "/"))
 })
 ```
+
 ## Contributing
 
 - If you think you have encountered a bug, please [submit an issue](https://github.com/xec-cm/biocroxytest/issues).
