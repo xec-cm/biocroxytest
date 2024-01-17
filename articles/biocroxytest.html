@@ -92,9 +92,6 @@ basic usage.
 body {
 text-align: justify}
 </style>
-<div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
-</h2>
 <p>The <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
 package is a novel tool that enhances the efficiency of test writing in
 R, particularly for Bioconductor software packages. It leverages the
@@ -119,40 +116,39 @@ well-documented. This not only improves the package’s reliability but
 also its maintainability. Thus, <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
 contributes to the creation of robust, reliable, and efficient
 Bioconductor packages.</p>
-</div>
 <div class="section level2">
 <h2 id="biocroxytest-setup">biocroxytest setup<a class="anchor" aria-label="anchor" href="#biocroxytest-setup"></a>
 </h2>
 <p>Once the <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
 package is installed, you need to carry out two steps to correctly set
 up long tests in your package:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Add the new roclet to your Description file</strong>: You
-need to add <code><a href="../reference/longtests_roclet.html">biocroxytest::longtests_roclet</a></code> to the Roxygen
-section of your Description file. This will enable
+<div class="section level4">
+<h4 id="add-the-new-roclet-to-your-description-file">1 - Add the new roclet to your Description file<a class="anchor" aria-label="anchor" href="#add-the-new-roclet-to-your-description-file"></a>
+</h4>
+<p>You need to add <code><a href="../reference/longtests_roclet.html">biocroxytest::longtests_roclet</a></code> to the
+Roxygen section of your Description file. This will enable
 <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenize()</a></code> to generate long tests from the
 <code>@longtest</code> tag. Your Description file should have a line
-similar to this:</li>
-</ol>
+similar to this:</p>
 <pre><code><span><span class="va">Roxygen</span><span class="op">:</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>roclets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"namespace"</span>, <span class="st">"rd"</span>, <span class="st">"biocroxytest::longtests_roclet"</span><span class="op">)</span><span class="op">)</span></span></code></pre>
-<ol start="2" style="list-style-type: decimal">
-<li>
-<strong>Run the <code><a href="../reference/use_longtests.html">biocroxytest::use_longtests()</a></code>
-function</strong>: This function sets up the overall infrastructure for
-long tests. When run, it creates the <code>longtests/testthat</code>
-directory and the <code>longtests/testthat.R</code> file, which are
-necessary for storing and running your long tests. Additionally, it
-generates a file named <code>.BBSoptions</code> that contains the
+</div>
+<div class="section level4">
+<h4 id="run-the-biocroxytestuse_longtests-function">2 - Run the <code>biocroxytest::use_longtests()</code> function<a class="anchor" aria-label="anchor" href="#run-the-biocroxytestuse_longtests-function"></a>
+</h4>
+<p>This function sets up the overall infrastructure for long tests. When
+run, it creates the <code>longtests/testthat</code> directory and the
+<code>longtests/testthat.R</code> file, which are necessary for storing
+and running your long tests. Additionally, it generates a file named
+<code>.BBSoptions</code> that contains the
 <code>RunLongTests: TRUE</code> parameter, indicating that long tests
-should be run on the Bioconductor servers.</li>
-</ol>
+should be run on the Bioconductor servers.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create the longtests directory and .BBSoptions file</span></span>
 <span><span class="fu">biocroxytest</span><span class="fu">::</span><span class="fu"><a href="../reference/use_longtests.html">use_longtests</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>With these two steps, your package will be set up to write, document,
 and store long tests directly in your <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> comments,
 improving the efficiency and organization of your test code.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="basic-process">Basic Process<a class="anchor" aria-label="anchor" href="#basic-process"></a>
@@ -161,14 +157,14 @@ improving the efficiency and organization of your test code.</p>
 package allows you to add extensive tests to your functions using the
 <code>@longtests</code> tag in your roxygen comments. Here’s a more
 detailed explanation of how to use it:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Add the <code>@longtests</code> tag to your function
-documentation</strong>: In your roxygen comments for each function, you
-can add a <code>@longtests</code> tag followed by the tests you want to
-run. These tests should be written as if they were in a
-<code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> call. For example:</li>
-</ol>
+<div class="section level4">
+<h4 id="add-the-longtests-tag-to-your-function-documentation">1 - Add the <code>@longtests</code> tag to your function
+documentation<a class="anchor" aria-label="anchor" href="#add-the-longtests-tag-to-your-function-documentation"></a>
+</h4>
+<p>In your roxygen comments for each function, you can add a
+<code>@longtests</code> tag followed by the tests you want to run. These
+tests should be written as if they were in a
+<code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> call. For example:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' A function to do x</span></span>
 <span><span class="co">#' </span></span>
@@ -183,18 +179,18 @@ run. These tests should be written as if they were in a
 <span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>In this example, the function <code>foo()</code> has two long tests
-associated with it: <code>expect_equal(foo(2), sqrt(2))</code> and
+associated with it: <code>expect_equal(foo(2),    sqrt(2))</code> and
 <code>expect_error(foo("a string"))</code>.</p>
-<ol start="2" style="list-style-type: decimal">
-<li>
-<strong>Run <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code></strong>: After
-adding the <code>@longtests</code> tags to your functions, you need to
-run <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code>. This will generate a new file
-in the <code>longtests/testthat</code> directory for each R script that
-contains functions with <code>@longtests</code> tags. The generated
-files will contain <code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> calls for each set
-of long tests.</li>
-</ol>
+</div>
+<div class="section level4">
+<h4 id="run-roxygen2roxygenise">2 - Run <code>roxygen2::roxygenise()</code><a class="anchor" aria-label="anchor" href="#run-roxygen2roxygenise"></a>
+</h4>
+<p>After adding the <code>@longtests</code> tags to your functions, you
+need to run <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code>. This will generate a
+new file in the <code>longtests/testthat</code> directory for each R
+script that contains functions with <code>@longtests</code> tags. The
+generated files will contain <code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> calls
+for each set of long tests.</p>
 <p>For instance, if you have the <code>foo()</code> function in a file
 named <code>R/functions.R</code>, <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code>
 will generate a file named
@@ -211,6 +207,7 @@ following content:</p>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>This file contains the long tests for the <code>foo()</code>
 function, ready to be run by <em><a href="https://github.com/r-lib/testthat" class="external-link">testthat</a></em>.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
