@@ -7,10 +7,22 @@
 use_longtests()
 }
 \value{
-Invisible
+This function does not return a value. It is used for its side
+effects of setting up the environment for running long tests.
 }
 \description{
-Creates longtests/testthat directory and longtests/testthat.R file.
+This function is used to set up the environment for running long tests. It
+calls two helper functions: \code{setup_bboptions()} and \code{setup_longtetsts()}.
+}
+\details{
+The \code{use_longtests()} function is a wrapper function that calls
+\code{setup_bboptions()} and \code{setup_longtetsts()}. The \code{setup_bboptions()}
+function checks if the .BBSoptions file exists and creates it if it doesn't.
+It then checks the contents of the .BBSoptions file and adds or modifies the
+'RunLongTests: TRUE' line as needed. The \code{setup_longtetsts()} function
+creates a 'longtests/testthat' directory if it doesn't exist and copies the
+'tests/testthat.R' file into it. If the 'tests/testthat.R' file doesn't
+exist, it creates a new one with default content.
 }
 \examples{
 # Create the longtests directory and .BBSoptions file

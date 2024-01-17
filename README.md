@@ -18,6 +18,8 @@ issues](https://img.shields.io/github/issues/xec-cm/biocroxytest)](https://githu
 pulls](https://img.shields.io/github/issues-pr/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/pulls)
 <!-- badges: end -->
 
+<br>
+
 *[biocroxytest](https://github.com/xec-cm/biocroxytest)* is an R package
 inspired by *[roxytest](https://github.com/mikldk/roxytest)*. It is
 specifically designed for the development of Bioconductor packages that
@@ -36,6 +38,8 @@ accessible and well-documented. This approach not only improves the
 reliability of the package but also enhances its maintainability.
 Developers can easily locate, understand, and update these long tests as
 needed, leading to more robust and efficient code.
+
+<br>
 
 ## Installation instructions
 
@@ -58,6 +62,8 @@ And the development version from
 ``` r
 BiocManager::install("xec-cm/biocroxytest")
 ```
+
+<br>
 
 ## Example
 
@@ -123,6 +129,8 @@ test_that("Function bar() @ L27", {
 })
 ```
 
+<br>
+
 ## Contributing
 
 - If you think you have encountered a bug, please [submit an
@@ -136,6 +144,8 @@ test_that("Function bar() @ L27", {
 - Working on your first Pull Request? You can learn how from this *free*
   series [How to Contribute to an Open Source Project on
   GitHub](https://kcd.im/pull-request)
+
+<br>
 
 ## Code of Conduct
 
