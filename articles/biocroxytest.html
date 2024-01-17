@@ -95,26 +95,127 @@ text-align: justify}
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p><em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em> is
-an R package inspired by <em><a href="https://github.com/mikldk/roxytest" class="external-link">roxytest</a></em>. It is
-specifically designed for the development of Bioconductor packages that
-require tests with high execution times (longtests).</p>
-<p>This package extends the functionality of <code>roxytest</code> by
-introducing a new roclet, <code>@longtests</code>. This innovative
-feature allows developers to document and store these long tests
-directly in their <code>roxygen2</code> comments.</p>
-<p>With <code>biocroxytest</code>, developers can now write
-comprehensive tests without worrying about slowing down the daily build
-process. The <code>@longtests</code> roclet provides a dedicated space
-for these extensive tests, ensuring they are easily accessible and
-well-documented. This approach not only improves the reliability of the
-package but also enhances its maintainability. Developers can easily
-locate, understand, and update these long tests as needed, leading to
-more robust and efficient code.</p>
-<div class="section level3">
-<h3 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
-</h3>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<p>The <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
+package is a novel tool that enhances the efficiency of test writing in
+R, particularly for Bioconductor software packages. It leverages the
+structure of <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> for test
+writing, which improves readability, code organization, and integrates
+seamlessly with package documentation.</p>
+<p>In Bioconductor, daily tests are run as part of the nightly builds,
+with a maximum limit of 40 minutes per package. For tests that exceed
+this limit, developers can set up “long tests” and add their package to
+the Bioconductor Long Tests builds. However, traditionally separating
+tests and long tests can be cumbersome.</p>
+<p><em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
+addresses this issue by introducing a new roclet,
+<code>@longtests</code>, inspired by <em><a href="https://github.com/mikldk/roxytest" class="external-link">roxytest</a></em>. This allows
+developers to document and store long tests directly within their <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> comments. By
+using the <code>@longtests</code> roclet, extensive tests are run and
+checked regularly without impacting the efficiency of the daily build
+process.</p>
+<p>The <code>@longtests</code> roclet provides a dedicated space for
+extensive tests, ensuring they are easily accessible and
+well-documented. This not only improves the package’s reliability but
+also its maintainability. Thus, <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
+contributes to the creation of robust, reliable, and efficient
+Bioconductor packages.</p>
+</div>
+<div class="section level2">
+<h2 id="biocroxytest-setup">biocroxytest setup<a class="anchor" aria-label="anchor" href="#biocroxytest-setup"></a>
+</h2>
+<p>Once the <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
+package is installed, you need to carry out two steps to correctly set
+up long tests in your package:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Add the new roclet to your Description file</strong>: You
+need to add <code><a href="../reference/longtests_roclet.html">biocroxytest::longtests_roclet</a></code> to the Roxygen
+section of your Description file. This will enable
+<code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenize()</a></code> to generate long tests from the
+<code>@longtest</code> tag. Your Description file should have a line
+similar to this:</li>
+</ol>
+<pre><code><span><span class="va">Roxygen</span><span class="op">:</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>roclets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"namespace"</span>, <span class="st">"rd"</span>, <span class="st">"biocroxytest::longtests_roclet"</span><span class="op">)</span><span class="op">)</span></span></code></pre>
+<ol start="2" style="list-style-type: decimal">
+<li>
+<strong>Run the <code><a href="../reference/use_longtests.html">biocroxytest::use_longtests()</a></code>
+function</strong>: This function sets up the overall infrastructure for
+long tests. When run, it creates the <code>longtests/testthat</code>
+directory and the <code>longtests/testthat.R</code> file, which are
+necessary for storing and running your long tests. Additionally, it
+generates a file named <code>.BBSoptions</code> that contains the
+<code>RunLongTests: TRUE</code> parameter, indicating that long tests
+should be run on the Bioconductor servers.</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create the longtests directory and .BBSoptions file</span></span>
+<span><span class="fu">biocroxytest</span><span class="fu">::</span><span class="fu"><a href="../reference/use_longtests.html">use_longtests</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>With these two steps, your package will be set up to write, document,
+and store long tests directly in your <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> comments,
+improving the efficiency and organization of your test code.</p>
+</div>
+<div class="section level2">
+<h2 id="basic-process">Basic Process<a class="anchor" aria-label="anchor" href="#basic-process"></a>
+</h2>
+<p>The <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>
+package allows you to add extensive tests to your functions using the
+<code>@longtests</code> tag in your roxygen comments. Here’s a more
+detailed explanation of how to use it:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Add the <code>@longtests</code> tag to your function
+documentation</strong>: In your roxygen comments for each function, you
+can add a <code>@longtests</code> tag followed by the tests you want to
+run. These tests should be written as if they were in a
+<code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> call. For example:</li>
+</ol>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' A function to do x</span></span>
+<span><span class="co">#' </span></span>
+<span><span class="co">#' @param x A number</span></span>
+<span><span class="co">#' </span></span>
+<span><span class="co">#' @longtests </span></span>
+<span><span class="co">#' expect_equal(foo(2), sqrt(2))</span></span>
+<span><span class="co">#' expect_error(foo("a string"))</span></span>
+<span><span class="co">#' </span></span>
+<span><span class="co">#' @return something</span></span>
+<span><span class="va">foo</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>In this example, the function <code>foo()</code> has two long tests
+associated with it: <code>expect_equal(foo(2), sqrt(2))</code> and
+<code>expect_error(foo("a string"))</code>.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>
+<strong>Run <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code></strong>: After
+adding the <code>@longtests</code> tags to your functions, you need to
+run <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code>. This will generate a new file
+in the <code>longtests/testthat</code> directory for each R script that
+contains functions with <code>@longtests</code> tags. The generated
+files will contain <code><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">testthat::test_that()</a></code> calls for each set
+of long tests.</li>
+</ol>
+<p>For instance, if you have the <code>foo()</code> function in a file
+named <code>R/functions.R</code>, <code><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygen2::roxygenise()</a></code>
+will generate a file named
+<code>longtests/test-biocroxytest-tests-functions.R</code> with the
+following content:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Generated by biocroxytest: do not edit by hand!</span></span>
+<span></span>
+<span><span class="co"># File R/functions.R: @longtests</span></span>
+<span></span>
+<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"Function foo() @ L11"</span>, <span class="op">{</span></span>
+<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">expect_error</span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="st">"a string"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>This file contains the long tests for the <code>foo()</code>
+function, ready to be run by <em><a href="https://github.com/r-lib/testthat" class="external-link">testthat</a></em>.</p>
+</div>
+<div class="section level2">
+<h2 id="session-info">Session info<a class="anchor" aria-label="anchor" href="#session-info"></a>
+</h2>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R Under development (unstable) (2024-01-09 r85796)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
@@ -141,17 +242,17 @@ more robust and efficient code.</p>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.6.5         cli_3.6.2           knitr_1.45         </span></span>
 <span><span class="co">#&gt;  [4] rlang_1.1.3         xfun_0.41           stringi_1.8.3      </span></span>
-<span><span class="co">#&gt;  [7] purrr_1.0.2         textshaping_0.3.7   jsonlite_1.8.8     </span></span>
-<span><span class="co">#&gt; [10] glue_1.7.0          BiocStyle_2.31.0    htmltools_0.5.7    </span></span>
-<span><span class="co">#&gt; [13] ragg_1.2.7          sass_0.4.8          rmarkdown_2.25     </span></span>
-<span><span class="co">#&gt; [16] evaluate_0.23       jquerylib_0.1.4     fastmap_1.1.1      </span></span>
-<span><span class="co">#&gt; [19] yaml_2.3.8          lifecycle_1.0.4     memoise_2.0.1      </span></span>
-<span><span class="co">#&gt; [22] BiocManager_1.30.22 stringr_1.5.1       compiler_4.4.0     </span></span>
-<span><span class="co">#&gt; [25] fs_1.6.3            systemfonts_1.0.5   digest_0.6.34      </span></span>
-<span><span class="co">#&gt; [28] R6_2.5.1            magrittr_2.0.3      bslib_0.6.1        </span></span>
-<span><span class="co">#&gt; [31] tools_4.4.0         pkgdown_2.0.7.9000  cachem_1.0.8       </span></span>
-<span><span class="co">#&gt; [34] desc_1.4.3</span></span></code></pre></div>
-</div>
+<span><span class="co">#&gt;  [7] purrr_1.0.2         textshaping_0.3.7   biocroxytest_0.99.0</span></span>
+<span><span class="co">#&gt; [10] jsonlite_1.8.8      glue_1.7.0          BiocStyle_2.31.0   </span></span>
+<span><span class="co">#&gt; [13] htmltools_0.5.7     roxygen2_7.3.0      ragg_1.2.7         </span></span>
+<span><span class="co">#&gt; [16] sass_0.4.8          rmarkdown_2.25      evaluate_0.23      </span></span>
+<span><span class="co">#&gt; [19] jquerylib_0.1.4     fastmap_1.1.1       yaml_2.3.8         </span></span>
+<span><span class="co">#&gt; [22] lifecycle_1.0.4     memoise_2.0.1       BiocManager_1.30.22</span></span>
+<span><span class="co">#&gt; [25] stringr_1.5.1       compiler_4.4.0      fs_1.6.3           </span></span>
+<span><span class="co">#&gt; [28] systemfonts_1.0.5   digest_0.6.34       R6_2.5.1           </span></span>
+<span><span class="co">#&gt; [31] magrittr_2.0.3      bslib_0.6.1         tools_4.4.0        </span></span>
+<span><span class="co">#&gt; [34] xml2_1.3.6          pkgdown_2.0.7.9000  cachem_1.0.8       </span></span>
+<span><span class="co">#&gt; [37] desc_1.4.3</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
