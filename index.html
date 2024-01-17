@@ -78,11 +78,10 @@
 </div>
 <!-- badges: start -->
 
-<p><br></p>
-<p><em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em> is an R package inspired by <em><a href="https://github.com/mikldk/roxytest" class="external-link">roxytest</a></em>. It is specifically designed for the development of Bioconductor packages that require tests with high execution times.</p>
-<p>This package extends the functionality of <code>roxytest</code> by introducing a new roclet, <code>@longtests</code>. This innovative feature allows developers to document and store these long tests directly in their <code>roxygen2</code> comments.</p>
-<p>With <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em>, developers can now write comprehensive tests without worrying about slowing down the daily build process. The <code>@longtests</code> roclet provides a dedicated space for these extensive tests, ensuring they are easily accessible and well-documented. This approach not only improves the reliability of the package but also enhances its maintainability. Developers can easily locate, understand, and update these long tests as needed, leading to more robust and efficient code.</p>
-<p><br></p>
+<p>The <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em> package is a novel tool that enhances the efficiency of test writing in R, particularly for Bioconductor software packages. It leverages the structure of <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> for test writing, which improves readability, code organization, and integrates seamlessly with package documentation.</p>
+<p>In Bioconductor, daily tests are run as part of the nightly builds, with a maximum limit of 40 minutes per package. For tests that exceed this limit, developers can set up “long tests” and add their package to the Bioconductor Long Tests builds. However, traditionally separating tests and long tests can be cumbersome.</p>
+<p><em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em> addresses this issue by introducing a new roclet, <code>@longtests</code>, inspired by <em><a href="https://github.com/mikldk/roxytest" class="external-link">roxytest</a></em>. This allows developers to document and store long tests directly within their <em><a href="https://github.com/r-lib/roxygen2" class="external-link">roxygen2</a></em> comments. By using the <code>@longtests</code> roclet, extensive tests are run and checked regularly without impacting the efficiency of the daily build process.</p>
+<p>The <code>@longtests</code> roclet provides a dedicated space for extensive tests, ensuring they are easily accessible and well-documented. This not only improves the package’s reliability but also its maintainability. Thus, <em><a href="https://github.com/xec-cm/biocroxytest" class="external-link">biocroxytest</a></em> contributes to the creation of robust, reliable, and efficient Bioconductor packages.</p>
 <div class="section level2">
 <h2 id="installation-instructions">Installation instructions<a class="anchor" aria-label="anchor" href="#installation-instructions"></a>
 </h2>
@@ -97,7 +96,6 @@
 <p>And the development version from <a href="https://github.com/xec-cm/biocroxytest" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="st">"xec-cm/biocroxytest"</span><span class="op">)</span></span></code></pre></div>
-<p><br></p>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
@@ -147,7 +145,6 @@
 <span><span class="fu">test_that</span><span class="op">(</span><span class="st">"Function bar() @ L27"</span>, <span class="op">{</span></span>
 <span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu">bar</span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, sep <span class="op">=</span> <span class="st">"/"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p><br></p>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
@@ -157,7 +154,6 @@
 <li><p>Either way, learn how to create and share a <a href="https://reprex.tidyverse.org/articles/articles/learn-reprex.html" class="external-link">reprex</a> (a minimal, reproducible example), to clearly communicate about your code.</p></li>
 <li><p>Working on your first Pull Request? You can learn how from this <em>free</em> series <a href="https://kcd.im/pull-request" class="external-link">How to Contribute to an Open Source Project on GitHub</a></p></li>
 </ul>
-<p><br></p>
 </div>
 <div class="section level2">
 <h2 id="code-of-conduct">Code of Conduct<a class="anchor" aria-label="anchor" href="#code-of-conduct"></a>
