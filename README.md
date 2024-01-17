@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# biocroxytest <a href="https://xec-cm.github.io/biocroxytest/"><img src="man/figures/logo.png" align="right" height="133" alt="biocroxytest website" /></a>
+# biocroxytest <a href="https://xec-cm.github.io/biocroxytest/"><img src="man/figures/logo.png" align="right" height="138" alt="biocroxytest website" /></a>
 
 <!-- badges: start -->
 
