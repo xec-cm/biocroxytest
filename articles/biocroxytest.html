@@ -205,9 +205,9 @@ following content:</p>
 <span></span>
 <span><span class="co"># File R/functions.R: @longtests</span></span>
 <span></span>
-<span><span class="fu">test_that</span><span class="op">(</span><span class="st">"Function foo() @ L11"</span>, <span class="op">{</span></span>
-<span>  <span class="fu">expect_equal</span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu">expect_error</span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="st">"a string"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/test_that.html" class="external-link">test_that</a></span><span class="op">(</span><span class="st">"Function foo() @ L11"</span>, <span class="op">{</span></span>
+<span>  <span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/equality-expectations.html" class="external-link">expect_equal</a></span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu">testthat</span><span class="fu">::</span><span class="fu"><a href="https://testthat.r-lib.org/reference/expect_error.html" class="external-link">expect_error</a></span><span class="op">(</span><span class="fu">foo</span><span class="op">(</span><span class="st">"a string"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>This file contains the long tests for the <code>foo()</code>
 function, ready to be run by <em><a href="https://github.com/r-lib/testthat" class="external-link">testthat</a></em>.</p>
@@ -240,19 +240,22 @@ function, ready to be run by <em><a href="https://github.com/r-lib/testthat" cla
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] vctrs_0.6.5         cli_3.6.2           knitr_1.45         </span></span>
-<span><span class="co">#&gt;  [4] rlang_1.1.3         xfun_0.41           stringi_1.8.3      </span></span>
-<span><span class="co">#&gt;  [7] purrr_1.0.2         textshaping_0.3.7   biocroxytest_0.99.0</span></span>
-<span><span class="co">#&gt; [10] jsonlite_1.8.8      glue_1.7.0          BiocStyle_2.31.0   </span></span>
-<span><span class="co">#&gt; [13] htmltools_0.5.7     roxygen2_7.3.0      ragg_1.2.7         </span></span>
-<span><span class="co">#&gt; [16] sass_0.4.8          rmarkdown_2.25      evaluate_0.23      </span></span>
-<span><span class="co">#&gt; [19] jquerylib_0.1.4     fastmap_1.1.1       yaml_2.3.8         </span></span>
-<span><span class="co">#&gt; [22] lifecycle_1.0.4     memoise_2.0.1       BiocManager_1.30.22</span></span>
-<span><span class="co">#&gt; [25] stringr_1.5.1       compiler_4.4.0      fs_1.6.3           </span></span>
-<span><span class="co">#&gt; [28] systemfonts_1.0.5   digest_0.6.34       R6_2.5.1           </span></span>
-<span><span class="co">#&gt; [31] magrittr_2.0.3      bslib_0.6.1         tools_4.4.0        </span></span>
-<span><span class="co">#&gt; [34] xml2_1.3.6          pkgdown_2.0.7.9000  cachem_1.0.8       </span></span>
-<span><span class="co">#&gt; [37] desc_1.4.3</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] BiocStyle_2.31.0    jsonlite_1.8.8      compiler_4.4.0     </span></span>
+<span><span class="co">#&gt;  [4] BiocManager_1.30.22 brio_1.1.4          xml2_1.3.6         </span></span>
+<span><span class="co">#&gt;  [7] stringr_1.5.1       jquerylib_0.1.4     systemfonts_1.0.5  </span></span>
+<span><span class="co">#&gt; [10] textshaping_0.3.7   yaml_2.3.8          fastmap_1.1.1      </span></span>
+<span><span class="co">#&gt; [13] R6_2.5.1            knitr_1.45          desc_1.4.3         </span></span>
+<span><span class="co">#&gt; [16] rprojroot_2.0.4     pillar_1.9.0        bslib_0.6.1        </span></span>
+<span><span class="co">#&gt; [19] rlang_1.1.3         utf8_1.2.4          testthat_3.2.1     </span></span>
+<span><span class="co">#&gt; [22] biocroxytest_0.99.0 cachem_1.0.8        stringi_1.8.3      </span></span>
+<span><span class="co">#&gt; [25] roxygen2_7.3.0      xfun_0.41           fs_1.6.3           </span></span>
+<span><span class="co">#&gt; [28] sass_0.4.8          pkgload_1.3.4       memoise_2.0.1      </span></span>
+<span><span class="co">#&gt; [31] cli_3.6.2           pkgdown_2.0.7.9000  withr_3.0.0        </span></span>
+<span><span class="co">#&gt; [34] magrittr_2.0.3      digest_0.6.34       lifecycle_1.0.4    </span></span>
+<span><span class="co">#&gt; [37] waldo_0.5.2         vctrs_0.6.5         evaluate_0.23      </span></span>
+<span><span class="co">#&gt; [40] glue_1.7.0          ragg_1.2.7          fansi_1.0.6        </span></span>
+<span><span class="co">#&gt; [43] rmarkdown_2.25      purrr_1.0.2         tools_4.4.0        </span></span>
+<span><span class="co">#&gt; [46] htmltools_0.5.7</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
