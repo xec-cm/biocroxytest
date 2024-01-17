@@ -24,13 +24,29 @@ knitr::opts_chunk$set(
 [![GitHub pulls](https://img.shields.io/github/issues-pr/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/pulls)
 <!-- badges: end -->
 
-The `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` package is a novel tool that enhances the efficiency of test writing in R, particularly for Bioconductor software packages. It leverages the structure of `r BiocStyle::Githubpkg("r-lib/roxygen2")` for test writing, which improves readability, code organization, and integrates seamlessly with package documentation.
+The `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` package is a novel tool that 
+enhances the efficiency of test writing in R, particularly for Bioconductor 
+software packages. It leverages the structure of `r BiocStyle::Githubpkg("r-lib/roxygen2")` 
+for test writing, which improves readability, code organization, and integrates 
+seamlessly with package documentation.
 
-In Bioconductor, daily tests are run as part of the nightly builds, with a maximum limit of 40 minutes per package. For tests that exceed this limit, developers can set up "long tests" and add their package to the Bioconductor Long Tests builds. However, traditionally separating tests and long tests can be cumbersome.
+In Bioconductor, daily tests are run as part of the nightly builds, with a 
+maximum limit of 40 minutes per package. For tests that exceed this limit, 
+developers can set up "long tests" and add their package to the Bioconductor 
+Long Tests builds. However, traditionally separating tests and long tests can 
+be cumbersome.
 
-`r BiocStyle::Githubpkg("xec-cm/biocroxytest")` addresses this issue by introducing a new roclet, `@longtests`, inspired by `r BiocStyle::Githubpkg("mikldk/roxytest")`. This allows developers to document and store long tests directly within their `r BiocStyle::Githubpkg("r-lib/roxygen2")` comments. By using the `@longtests` roclet, extensive tests are run and checked regularly without impacting the efficiency of the daily build process.
+`r BiocStyle::Githubpkg("xec-cm/biocroxytest")` addresses this issue by 
+introducing a new roclet, `@longtests`, inspired by `r BiocStyle::Githubpkg("mikldk/roxytest")`. 
+This allows developers to document and store long tests directly within their 
+`r BiocStyle::Githubpkg("r-lib/roxygen2")` comments. By using the `@longtests` 
+roclet, extensive tests are run and checked regularly without impacting the 
+efficiency of the daily build process.
 
-The `@longtests` roclet provides a dedicated space for extensive tests, ensuring they are easily accessible and well-documented. This not only improves the package's reliability but also its maintainability. Thus, `r BiocStyle::Githubpkg("xec-cm/biocroxytest")`  contributes to the creation of robust, reliable, and efficient Bioconductor packages. 
+The `@longtests` roclet provides a dedicated space for extensive tests, ensuring 
+they are easily accessible and well-documented. This not only improves the 
+package's reliability but also its maintainability. Thus, `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` contributes to the creation of 
+robust, reliable, and efficient Bioconductor packages. 
 
 ## Installation instructions
 
@@ -47,7 +63,8 @@ following code:
 # BiocManager::install("biocroxytest")
 ```
 
-And the development version from [GitHub](https://github.com/xec-cm/biocroxytest) with:
+And the development version from [GitHub](https://github.com/xec-cm/biocroxytest)
+with:
 
 ```{r 'install_dev', eval = FALSE}
 BiocManager::install("xec-cm/biocroxytest")
@@ -122,10 +139,11 @@ test_that("Function bar() @ L27", {
 
 - Either way, learn how to create and share a [reprex](https://reprex.tidyverse.org/articles/articles/learn-reprex.html) (a minimal, reproducible example), to clearly communicate about your code.
 
-- Working on your first Pull Request? You can learn how from this *free* series [How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
+- Working on your first Pull Request? You can learn how from this *free* series 
+[How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
 
 ## Code of Conduct
 
 Please note that the `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` project is 
-released with a [Contributor Code of Conduct](http://bioconductor.org/about/code-of-conduct/). 
+released with a [Contributor Code of Conduct](http://bioconductor.org/about/code-of-conduct/).
 By contributing to this project, you agree to abide by its terms.

@@ -18,28 +18,32 @@ issues](https://img.shields.io/github/issues/xec-cm/biocroxytest)](https://githu
 pulls](https://img.shields.io/github/issues-pr/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/pulls)
 <!-- badges: end -->
 
-<br>
+The *[biocroxytest](https://github.com/xec-cm/biocroxytest)* package is
+a novel tool that enhances the efficiency of test writing in R,
+particularly for Bioconductor software packages. It leverages the
+structure of *[roxygen2](https://github.com/r-lib/roxygen2)* for test
+writing, which improves readability, code organization, and integrates
+seamlessly with package documentation.
 
-*[biocroxytest](https://github.com/xec-cm/biocroxytest)* is an R package
-inspired by *[roxytest](https://github.com/mikldk/roxytest)*. It is
-specifically designed for the development of Bioconductor packages that
-require tests with high execution times.
+In Bioconductor, daily tests are run as part of the nightly builds, with
+a maximum limit of 40 minutes per package. For tests that exceed this
+limit, developers can set up “long tests” and add their package to the
+Bioconductor Long Tests builds. However, traditionally separating tests
+and long tests can be cumbersome.
 
-This package extends the functionality of `roxytest` by introducing a
-new roclet, `@longtests`. This innovative feature allows developers to
-document and store these long tests directly in their `roxygen2`
-comments.
+*[biocroxytest](https://github.com/xec-cm/biocroxytest)* addresses this
+issue by introducing a new roclet, `@longtests`, inspired by
+*[roxytest](https://github.com/mikldk/roxytest)*. This allows developers
+to document and store long tests directly within their
+*[roxygen2](https://github.com/r-lib/roxygen2)* comments. By using the
+`@longtests` roclet, extensive tests are run and checked regularly
+without impacting the efficiency of the daily build process.
 
-With *[biocroxytest](https://github.com/xec-cm/biocroxytest)*,
-developers can now write comprehensive tests without worrying about
-slowing down the daily build process. The `@longtests` roclet provides a
-dedicated space for these extensive tests, ensuring they are easily
-accessible and well-documented. This approach not only improves the
-reliability of the package but also enhances its maintainability.
-Developers can easily locate, understand, and update these long tests as
-needed, leading to more robust and efficient code.
-
-<br>
+The `@longtests` roclet provides a dedicated space for extensive tests,
+ensuring they are easily accessible and well-documented. This not only
+improves the package’s reliability but also its maintainability. Thus,
+*[biocroxytest](https://github.com/xec-cm/biocroxytest)* contributes to
+the creation of robust, reliable, and efficient Bioconductor packages.
 
 ## Installation instructions
 
@@ -62,8 +66,6 @@ And the development version from
 ``` r
 BiocManager::install("xec-cm/biocroxytest")
 ```
-
-<br>
 
 ## Example
 
@@ -129,8 +131,6 @@ test_that("Function bar() @ L27", {
 })
 ```
 
-<br>
-
 ## Contributing
 
 - If you think you have encountered a bug, please [submit an
@@ -144,8 +144,6 @@ test_that("Function bar() @ L27", {
 - Working on your first Pull Request? You can learn how from this *free*
   series [How to Contribute to an Open Source Project on
   GitHub](https://kcd.im/pull-request)
-
-<br>
 
 ## Code of Conduct
 
