@@ -30,8 +30,6 @@ options(digits = 3)
 ```
 
 
-## Introduction
-
 The `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` package is a novel tool that enhances the efficiency of test writing in R, particularly for Bioconductor software packages. It leverages the structure of `r BiocStyle::Githubpkg("r-lib/roxygen2")` for test writing, which improves readability, code organization, and integrates seamlessly with package documentation.
 
 In Bioconductor, daily tests are run as part of the nightly builds, with a maximum limit of 40 minutes per package. For tests that exceed this limit, developers can set up "long tests" and add their package to the Bioconductor Long Tests builds. However, traditionally separating tests and long tests can be cumbersome.
@@ -44,13 +42,17 @@ The `@longtests` roclet provides a dedicated space for extensive tests, ensuring
 
 Once the `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` package is installed, you need to carry out two steps to correctly set up long tests in your package:
 
-1. **Add the new roclet to your Description file**: You need to add `biocroxytest::longtests_roclet` to the Roxygen section of your Description file. This will enable `roxygen2::roxygenize()` to generate long tests from the `@longtest` tag. Your Description file should have a line similar to this:
+#### 1 - Add the new roclet to your Description file
+
+You need to add `biocroxytest::longtests_roclet` to the Roxygen section of your Description file. This will enable `roxygen2::roxygenize()` to generate long tests from the `@longtest` tag. Your Description file should have a line similar to this:
 
 ```
 Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::longtests_roclet"))
 ```
 
-2. **Run the `biocroxytest::use_longtests()` function**: This function sets up the overall infrastructure for long tests. When run, it creates the `longtests/testthat` directory and the `longtests/testthat.R` file, which are necessary for storing and running your long tests. Additionally, it generates a file named `.BBSoptions` that contains the `RunLongTests: TRUE` parameter, indicating that long tests should be run on the Bioconductor servers.
+#### 2 - Run the `biocroxytest::use_longtests()` function
+
+This function sets up the overall infrastructure for long tests. When run, it creates the `longtests/testthat` directory and the `longtests/testthat.R` file, which are necessary for storing and running your long tests. Additionally, it generates a file named `.BBSoptions` that contains the `RunLongTests: TRUE` parameter, indicating that long tests should be run on the Bioconductor servers.
 
 ```{r}
 # Create the longtests directory and .BBSoptions file
@@ -63,7 +65,9 @@ With these two steps, your package will be set up to write, document, and store 
 
 The `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` package allows you to add extensive tests to your functions using the `@longtests` tag in your roxygen comments. Here's a more detailed explanation of how to use it:
 
-1. **Add the `@longtests` tag to your function documentation**: In your roxygen comments for each function, you can add a `@longtests` tag followed by the tests you want to run. These tests should be written as if they were in a `testthat::test_that()` call. For example:
+#### 1 - Add the `@longtests` tag to your function documentation
+
+In your roxygen comments for each function, you can add a `@longtests` tag followed by the tests you want to run. These tests should be written as if they were in a `testthat::test_that()` call. For example:
 
 ```{r}
 #' A function to do x
@@ -80,9 +84,12 @@ foo <- function(x) {
 }
 ```
 
-In this example, the function `foo()` has two long tests associated with it: `expect_equal(foo(2), sqrt(2))` and `expect_error(foo("a string"))`.
+In this example, the function `foo()` has two long tests associated with it: `expect_equal(foo(2),    sqrt(2))` and `expect_error(foo("a string"))`.
 
-2. **Run `roxygen2::roxygenise()`**: After adding the `@longtests` tags to your functions, you need to run `roxygen2::roxygenise()`. This will generate a new file in the `longtests/testthat` directory for each R script that contains functions with `@longtests` tags. The generated files will contain `testthat::test_that()` calls for each set of long tests.
+#### 2 - Run `roxygen2::roxygenise()`
+
+After adding the `@longtests` tags to your functions, you need to
+run `roxygen2::roxygenise()`. This will generate a new file in the `longtests/testthat` directory for each R script that contains functions with `@longtests` tags. The generated files will contain `testthat::test_that()` calls for each set of long tests. 
 
 For instance, if you have the `foo()` function in a file named `R/functions.R`, `roxygen2::roxygenise()` will generate a file named `longtests/test-biocroxytest-tests-functions.R` with the following content:
 
