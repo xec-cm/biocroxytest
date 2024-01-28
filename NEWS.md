@@ -1,6 +1,12 @@
+# biocroxytest 0.99.1
+
+### Bug fixes
+
+* Add files to .gitignore
+
 # biocroxytest 0.99.0
 
-NEW FEATURES
+### New features
 
 * Initial Bioconductor submission
 
