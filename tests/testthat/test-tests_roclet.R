@@ -107,11 +107,14 @@ test_that("an unused suite does not require setup", {
 
 test_that("the suites cannot share one output directory", {
   with_test_suites({
-    # Windows checks whether the target is a directory before creating the link.
     target <- normalizePath("tests/testthat", mustWork = TRUE)
     unlink("longtests/testthat", recursive = TRUE)
-    if (!suppressWarnings(file.symlink(target, "longtests/testthat"))) {
-      skip("Cannot create a directory symlink")
+    # R's recursive unlink on Windows can remove junctions.
+    link_dir <- if (.Platform$OS.type == "windows") get("Sys.junction", baseenv()) else {
+      file.symlink
+    }
+    if (!suppressWarnings(link_dir(target, "longtests/testthat"))) {
+      skip("Cannot create a directory link")
     }
     expect_true(dir.exists("longtests/testthat"))
     writeLines(c("#' @tests expect_true(TRUE)", "#' @longtests expect_false(FALSE)",
