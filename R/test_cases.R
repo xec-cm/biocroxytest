@@ -5,6 +5,7 @@
 #' `"tests"` or `"longtests"` and can have a `setup` block. The generator
 #' puts the setup and shared body in the same `test_that()` call for each
 #' case. Neither block runs when planning or generating tests.
+#' Cases may also declare \link{test_fixtures}.
 #'
 #' Group names are unique in the package, and case names are unique within
 #' their group. Names start with an ASCII letter or digit and may also
@@ -15,7 +16,8 @@
 #'
 #' @param path Path to the source package root.
 #' @return A data frame with case `id`, `suite`, relative `source` and output
-#'   `path`, testthat `description` and generated `code`. Each row describes
+#'   `path`, testthat `description`, generated `code`, and a `fixture` list
+#'   column with the fixture declarations. Each row describes
 #'   one named case declared directly in the package's roxygen source.
 #' @export
 #' @examples
@@ -61,11 +63,13 @@ test_case_plan <- function(path = ".") {
 #' @param id An exact case ID from [test_case_plan()].
 #' @param path Path to the source package root.
 #' @param reporter A testthat reporter name or object.
+#' @inheritParams run_test_plan
 #' @return The testthat results, invisibly. Inspect these results for failures.
 #' @export
 #' @examples
 #' if (interactive()) run_test_case("arithmetic/small")
-run_test_case <- function(id, path = ".", reporter = "summary") {
+run_test_case <- function(id, path = ".", reporter = "summary",
+                          download_fixtures = FALSE, fixture_cache = NULL) {
   if (!is.character(id) || length(id) != 1L || is.na(id)) {
     cli::cli_abort("Supply one test case ID.", call = NULL)
   }
@@ -79,10 +83,25 @@ run_test_case <- function(id, path = ".", reporter = "summary") {
   file <- file.path(path, case$path)
   verify_generated_case(file, case)
   require_case_testthat()
+  validate_fixture_run_options(download_fixtures, fixture_cache)
+  if (length(case$fixture[[1L]]) || !is.null(fixture_cache)) {
+    fixture_cache <- resolve_fixture_cache(fixture_cache, path)
+  }
 
   copy <- test_package_copy_path(path)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
   copy_test_package(path, copy)
+
+  staging <- tempfile("biocroxytest-fixtures-")
+  on.exit(unlink(staging, recursive = TRUE), add = TRUE)
+  fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
+  if (any(fixtures$required & fixtures$status != "verified")) {
+    details <- fixture_diagnostics(fixtures)
+    cli::cli_abort("{details}", class = "biocroxytest_fixture_unavailable", call = NULL)
+  }
+  old_options <- options(biocroxytest.fixture_paths = fixture_paths(fixtures))
+  on.exit(options(old_options), add = TRUE)
+
   package <- read.dcf(file.path(copy, "DESCRIPTION"), fields = "Package")[[1L]]
   roxygen2::load_pkgload(path)
   testthat::test_file(file.path(copy, case$path), reporter = reporter,
@@ -145,12 +164,13 @@ roxy_tag_parse.roxy_tag_testCases <- function(x) {
   }
   cases <- lapply(cases, function(case) {
     values <- case_list(case)
-    if (!valid_case_fields(values, "suite", "setup") ||
+    if (!valid_case_fields(values, "suite", c("setup", "fixtures")) ||
         !is.character(values$suite) || length(values$suite) != 1L ||
         !values$suite %in% c("tests", "longtests") ||
         ("setup" %in% names(values) && !is_case_block(values$setup))) {
       abort_case_tag(x, "Each case needs suite = \"tests\" or \"longtests\" and an optional setup = {...}.")
     }
+    values$fixtures <- parse_case_fixtures(x, values)
     values
   })
   x$val <- list(group = group, cases = cases, test = fields$test)
@@ -209,18 +229,22 @@ collect_test_cases <- function(blocks, check_origin = FALSE) {
     ids <- paste(values$group, names(values$cases), sep = "/")
     suites <- vapply(values$cases, `[[`, character(1), "suite", USE.NAMES = FALSE)
     code <- vapply(seq_along(ids), function(i) {
-      body <- c(case_block_code(values$cases[[i]]$setup), case_block_code(values$test))
+      case <- values$cases[[i]]
+      body <- c(fixture_test_code(case$fixtures), case_block_code(case$setup), case_block_code(values$test))
       paste(c(paste0("test_that(", encodeString(ids[[i]], quote = '"'), ", {"),
               body, "})"), collapse = "\n")
     }, character(1))
-    data.frame(
+    result <- data.frame(
       id = ids, suite = suites, source = paste0("R/", source),
       path = paste0(suites, "/testthat/", vapply(suites, test_prefix, character(1)), source),
       description = ids, code = code
     )
+    result$fixture <- lapply(values$cases, "[[", "fixtures")
+    result
   })
   empty <- data.frame(id = character(), suite = character(), source = character(),
                       path = character(), description = character(), code = character())
+  empty$fixture <- list()
   plan <- do.call(rbind, c(list(empty), rows))
   plan <- plan[order(plan$id, method = "radix"), , drop = FALSE]
   rownames(plan) <- NULL

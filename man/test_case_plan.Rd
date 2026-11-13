@@ -11,7 +11,8 @@ test_case_plan(path = ".")
 }
 \value{
 A data frame with case \code{id}, \code{suite}, relative \code{source} and output
-\code{path}, testthat \code{description} and generated \code{code}. Each row describes
+\code{path}, testthat \code{description}, generated \code{code}, and a \code{fixture} list
+column with the fixture declarations. Each row describes
 one named case declared directly in the package's roxygen source.
 }
 \description{
@@ -20,6 +21,7 @@ Declare a group with \verb{@testCases group-name} and a literal R list containin
 \code{"tests"} or \code{"longtests"} and can have a \code{setup} block. The generator
 puts the setup and shared body in the same \code{test_that()} call for each
 case. Neither block runs when planning or generating tests.
+Cases may also declare \link{test_fixtures}.
 }
 \details{
 Group names are unique in the package, and case names are unique within

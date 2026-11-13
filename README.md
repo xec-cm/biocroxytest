@@ -189,6 +189,33 @@ case is incomplete. Regenerate tests before recording evidence.
 Each case runs in a fresh R session and a temporary copy, with its
 suite’s testthat helpers, setup and teardown.
 
+## Pin test fixtures
+
+Add `fs` to your package’s Suggests and a `fixtures` list to the named
+case. For example, put `fixture.tsv` in the case’s `tests/testthat`
+directory and compute its checksum with
+`tools::md5sum("tests/testthat/fixture.tsv")`.
+
+``` r
+#' @testCases table
+#' list(
+#'   cases = list(
+#'     small = list(suite = "tests", fixtures = list(
+#'       data = list(source = "fixture.tsv", md5 = "<32-digit checksum>")
+#'     ))
+#'   ),
+#'   test = { expect_gt(nrow(read.delim(fixture_paths[["data"]])), 0L) }
+#' )
+```
+
+For an HTTPS source, install BiocFileCache and run
+`run_test_plan(download_fixtures = TRUE)` to populate the cache. Later
+runs can use the cache offline. The report’s `fixtures` field records
+each check. A missing or changed required fixture blocks the case. With
+`required = FALSE`, the case can handle an unavailable fixture through
+an `NA` path. Standard testthat runs verify local files and skip cases
+that require a remote fixture.
+
 ## Check generated tests in CI
 
 List the generated files, their source files, and their suites with

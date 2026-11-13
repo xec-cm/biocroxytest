@@ -23,12 +23,19 @@
 #'
 #' @param path Path to the source package root.
 #' @param ids Exact case IDs to run. `NULL` runs the entire named plan.
+#' @param download_fixtures Allow HTTPS downloads of declared fixtures when
+#'   a verified copy is unavailable in the cache. Defaults to `FALSE`.
+#' @param fixture_cache BiocFileCache directory. `NULL` uses the package's
+#'   user cache directory, `tools::R_user_dir("biocroxytest", "cache")`.
 #' @return A list with `revision`, a content fingerprint, `cases`, a data
 #'   frame containing the selected case IDs, suites, paths, statuses,
 #'   durations in seconds and diagnostics, and `environments`, the R
 #'   version, platform, operating system, locale and loaded package versions
 #'   observed at the end of execution, by case ID. The duration is elapsed
 #'   time for the case, or elapsed runner time when execution is interrupted.
+#'   `fixtures` contains the preflight fixture sources, expected and observed
+#'   checksums, availability and diagnostics, keyed by case ID. A case with
+#'   an unavailable required fixture is `incomplete` and does not start.
 #' @export
 #' @examples
 #' pkg <- tempfile("test-plan-example-")
@@ -36,7 +43,8 @@
 #' writeLines("Package: examplepkg", file.path(pkg, "DESCRIPTION"))
 #' run_test_plan(pkg)
 #' unlink(pkg, recursive = TRUE)
-run_test_plan <- function(path = ".", ids = NULL) {
+run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE, fixture_cache = NULL) {
+  validate_fixture_run_options(download_fixtures, fixture_cache)
   path <- test_package_path(path)
   snapshot <- test_package_copy_path(path)
   on.exit(unlink(snapshot, recursive = TRUE, expand = FALSE), add = TRUE)
@@ -53,6 +61,9 @@ run_test_plan <- function(path = ".", ids = NULL) {
     }
     plan <- plan[match(ids, plan$id), , drop = FALSE]
   }
+  if (any(lengths(plan$fixture)) || !is.null(fixture_cache)) {
+    fixture_cache <- resolve_fixture_cache(fixture_cache, path)
+  }
 
   revision <- test_plan_revision(snapshot)
   cases_df <- plan[c("id", "suite", "source", "path")]
@@ -60,22 +71,26 @@ run_test_plan <- function(path = ".", ids = NULL) {
   cases_df$duration <- rep(NA_real_, nrow(cases_df))
   cases_df$detail <- rep("", nrow(cases_df))
   environments <- list()
+  fixtures <- list()
 
   if (nrow(plan)) {
     require_case_testthat()
   }
   for (i in seq_len(nrow(plan))) {
-    evidence <- record_test_case(snapshot, plan[i, ])
+    evidence <- record_test_case(snapshot, plan[i, ], download_fixtures, fixture_cache)
     cases_df$status[i] <- evidence$status
     cases_df$duration[i] <- evidence$duration
     cases_df$detail[i] <- evidence$detail
     if (!is.null(evidence$environment)) {
       environments[[cases_df$id[i]]] <- evidence$environment
     }
+    if (NROW(evidence$fixtures)) {
+      fixtures[[cases_df$id[i]]] <- evidence$fixtures
+    }
   }
 
   rownames(cases_df) <- NULL
-  list(revision = revision, cases = cases_df, environments = environments)
+  list(revision = revision, cases = cases_df, environments = environments, fixtures = fixtures)
 }
 
 test_plan_revision <- function(path) {
@@ -96,7 +111,7 @@ test_plan_revision <- function(path) {
   unname(tools::md5sum(manifest_file))
 }
 
-record_test_case <- function(snapshot, case) {
+record_test_case <- function(snapshot, case, download_fixtures, fixture_cache) {
   file <- file.path(snapshot, case$path)
   if (!file.exists(file)) {
     return(list(status = "missing", duration = NA_real_, detail = "Generated file is absent."))
@@ -109,6 +124,15 @@ record_test_case <- function(snapshot, case) {
   copy <- test_package_copy_path(snapshot)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
   copy_test_package(snapshot, copy)
+  staging <- tempfile("biocroxytest-fixtures-")
+  on.exit(unlink(staging, recursive = TRUE), add = TRUE)
+  fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
+  fixture_evidence <- fixtures[, names(fixtures) != "path"]
+  if (any(fixtures$required & fixtures$status != "verified")) {
+    return(list(status = "incomplete", duration = NA_real_,
+                detail = fixture_diagnostics(fixtures), fixtures = fixture_evidence))
+  }
+
   file <- file.path(copy, case$path)
   started <- proc.time()[["elapsed"]]
   run <- tryCatch(
@@ -116,7 +140,8 @@ record_test_case <- function(snapshot, case) {
       execute_evidence_case,
       args = list(
         path = copy, file = file, description = case$description,
-        code = case$code, location = location, checksum = unname(tools::md5sum(file))
+        code = case$code, location = location, checksum = unname(tools::md5sum(file)),
+        paths = fixture_paths(fixtures)
       ),
       user_profile = FALSE,
       system_profile = FALSE,
@@ -129,15 +154,16 @@ record_test_case <- function(snapshot, case) {
   }
   if (!is.null(run$problem)) {
     return(list(status = "incomplete", duration = proc.time()[["elapsed"]] - started,
-                detail = run$problem))
+                detail = run$problem, fixtures = fixture_evidence))
   }
   if (run$status == "incomplete" && is.na(run$duration)) {
     run$duration <- proc.time()[["elapsed"]] - started
   }
+  run$fixtures <- fixture_evidence
   run
 }
 
-execute_evidence_case <- function(path, file, description, code, location, checksum) {
+execute_evidence_case <- function(path, file, description, code, location, checksum, paths) {
   setwd(path)
   state <- new.env(parent = emptyenv())
   state$finished <- FALSE
@@ -207,7 +233,10 @@ execute_evidence_case <- function(path, file, description, code, location, check
     if (utils::packageVersion("testthat") < "3.3.0") {
       stop("Running a named case requires testthat 3.3.0 or newer.", call. = FALSE)
     }
-    options(biocroxytest.case_event = function(event) { state[[event]] <- TRUE })
+    options(
+      biocroxytest.case_event = function(event) { state[[event]] <- TRUE },
+      biocroxytest.fixture_paths = paths
+    )
 
     testthat::test_file(file, reporter = reporter, desc = description, package = package)
     if (!identical(unname(tools::md5sum(file)), checksum)) {

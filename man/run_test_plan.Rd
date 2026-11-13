@@ -4,12 +4,23 @@
 \alias{run_test_plan}
 \title{Record execution evidence for named test cases}
 \usage{
-run_test_plan(path = ".", ids = NULL)
+run_test_plan(
+  path = ".",
+  ids = NULL,
+  download_fixtures = FALSE,
+  fixture_cache = NULL
+)
 }
 \arguments{
 \item{path}{Path to the source package root.}
 
 \item{ids}{Exact case IDs to run. \code{NULL} runs the entire named plan.}
+
+\item{download_fixtures}{Allow HTTPS downloads of declared fixtures when
+a verified copy is unavailable in the cache. Defaults to \code{FALSE}.}
+
+\item{fixture_cache}{BiocFileCache directory. \code{NULL} uses the package's
+user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
 }
 \value{
 A list with \code{revision}, a content fingerprint, \code{cases}, a data
@@ -18,6 +29,9 @@ durations in seconds and diagnostics, and \code{environments}, the R
 version, platform, operating system, locale and loaded package versions
 observed at the end of execution, by case ID. The duration is elapsed
 time for the case, or elapsed runner time when execution is interrupted.
+\code{fixtures} contains the preflight fixture sources, expected and observed
+checksums, availability and diagnostics, keyed by case ID. A case with
+an unavailable required fixture is \code{incomplete} and does not start.
 }
 \description{
 Run the selected \code{\link[=test_case_plan]{test_case_plan()}} cases using their generated files and

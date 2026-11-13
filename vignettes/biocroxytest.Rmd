@@ -190,6 +190,14 @@ for all named cases or a selection by ID. Each case runs in a fresh R session
 in a temporary package copy. The report includes a fingerprint of the copied
 package revision. A case that skips after a passing assertion is incomplete.
 
+Pin a named case's input files in its `fixtures` list. Each named fixture
+declares a suite-relative file path or HTTPS `source` and an `md5` checksum.
+Access verified paths with `fixture_paths[["name"]]` in the setup or test.
+Set `required = FALSE` to receive `NA` when an optional fixture is unavailable.
+For remote fixtures, `run_test_plan(download_fixtures = TRUE)` fills a local
+BiocFileCache cache. Default runs can reuse verified copies offline. See
+`?test_fixtures` for the generated suite's behavior and the evidence fields.
+
 ## Check generated test files
 
 `biocroxytest::generated_test_inventory()` lists the source, output path,
