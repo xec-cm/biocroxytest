@@ -27,8 +27,7 @@ biocViews: Software, Infrastructure
 Imports: 
     cli,
     glue,
-    roxygen2,
-    stringr
+    roxygen2
 Suggests: 
     BiocStyle,
     here,

@@ -2,33 +2,29 @@
 % Please edit documentation in R/use_longtests.R
 \name{use_longtests}
 \alias{use_longtests}
-\title{Sets up overall longtests infrastructure}
+\title{Set up long tests for a package}
 \usage{
 use_longtests()
 }
 \value{
-This function does not return a value. It is used for its side
-effects of setting up the environment for running long tests.
+Invisibly returns NULL. The function is called for its side effects.
 }
 \description{
-This function is used to set up the environment for running long tests. It
-calls two helper functions: \code{setup_bboptions()} and \code{setup_longtetsts()}.
-}
-\details{
-The \code{use_longtests()} function is a wrapper function that calls
-\code{setup_bboptions()} and \code{setup_longtetsts()}. The \code{setup_bboptions()}
-function checks if the .BBSoptions file exists and creates it if it doesn't.
-It then checks the contents of the .BBSoptions file and adds or modifies the
-'RunLongTests: TRUE' line as needed. The \code{setup_longtetsts()} function
-creates a 'longtests/testthat' directory if it doesn't exist and copies the
-'tests/testthat.R' file into it. If the 'tests/testthat.R' file doesn't
-exist, it creates a new one with default content.
+Run this function from the package root. It enables long tests in
+\code{.BBSoptions} and creates \code{longtests/testthat} and a testthat runner.
+An existing long test runner is preserved. If there is no long test runner,
+the function copies \code{tests/testthat.R} when available or creates a runner
+for the package named in \code{DESCRIPTION}.
 }
 \examples{
-# Create the longtests directory and .BBSoptions file
-use_longtests()
-
-# Remove the longtests directory and .BBSoptions file
-unlink(file.path(".BBSoptions"), recursive = TRUE, force = TRUE)
-unlink(file.path("longtests"), recursive = TRUE, force = TRUE)
+pkg <- tempfile("longtests-example-")
+dir.create(pkg)
+old <- setwd(pkg)
+tryCatch({
+  writeLines("Package: examplepkg", "DESCRIPTION")
+  use_longtests()
+}, finally = {
+  setwd(old)
+  unlink(pkg, recursive = TRUE, expand = FALSE)
+})
 }
