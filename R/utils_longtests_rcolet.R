@@ -1,8 +1,13 @@
-#' @param x A character vector
+#' @param x A character scalar containing R code
 #'
 #' @noRd
 #' @keywords internal
 indent_text <- function(x) {
+  # Indenting continuation lines inside a literal changes its value.
+  parsed <- tryCatch(parse(text = x, keep.source = TRUE), error = function(e) NULL)
+  if (is.null(parsed)) { return(x) }
+  tokens <- utils::getParseData(parsed)
+  if (is.null(tokens) || any(tokens$terminal & tokens$line1 != tokens$line2)) { return(x) }
   paste0("  ", gsub("\n", "\n  ", x, fixed = TRUE))
 }
 
@@ -10,9 +15,7 @@ indent_text <- function(x) {
 #'
 #' @noRd
 #' @keywords internal
-prepare_tests <- function(x) {
-  gsub("^\\s*(.*?)\\s*$", "\\1", x)
-}
+prepare_tests <- function(x) { gsub("^\\s*(.*?)\\s*$", "\\1", x) }
 
 #' @param x A character vector
 #'
@@ -24,42 +27,6 @@ auto_quote <- function(x) {
   x
 }
 
-#' @param blocks A list of roxygen2 blocks
-#'
-#' @noRd
-#' @keywords internal
-collect_annotate_rdname <- function(blocks) {
-  rdnameblocks <- list()
-  otherblocks <- list()
-
-  for (block in blocks) {
-    block_rdname <- roxygen2::block_get_tags(block, "rdname")
-
-    if (length(block_rdname) == 0L) {
-      otherblocks[[length(otherblocks) + 1L]] <- block
-      next
-    }
-
-    if (length(block_rdname) >= 2L) {
-      stop("Did not expect two @rdname's in a block")
-    }
-
-    # length(block_rdname) == 1:
-    block_rdname <- block_rdname[[1L]]
-
-    if (is.null(rdnameblocks[[ block_rdname$val  ]])) {
-      rdnameblocks[[ block_rdname$val  ]] <- block
-    } else {
-      rdnameblocks[[ block_rdname$val  ]]$tags <- c(
-        rdnameblocks[[ block_rdname$val  ]]$tags,
-        block$tags
-      )
-    }
-  }
-
-  c(rdnameblocks, otherblocks)
-}
-
 #' Convert a roxygen2 block to a testthat file
 #'
 #' This is an internal function that converts a roxygen2 block to a testthat
@@ -67,9 +34,8 @@ collect_annotate_rdname <- function(blocks) {
 #' returns NULL. Then, it extracts the 'longtests' and 'examples' tags from the
 #' block and assigns them to the 'longtests' and 'examples' fields of the
 #' testthat file, respectively. It also assigns the basename of the block's file
-#' to the 'filename' field, and the alias of the block's object to the
-#' 'functionname' field. If the block's line is not NULL, it appends it to the
-#' 'functionname' field.
+#' to the 'filename' field and builds a test title from the object's alias or
+#' S4 method topic and its source line.
 #'
 #' @param block A roxygen2 block.
 #'
@@ -77,17 +43,20 @@ collect_annotate_rdname <- function(blocks) {
 #'   'longtests' tags.
 #' @keywords internal
 block_to_testthat <- function(block) {
+  if (length(roxygen2::block_get_tags(block, "rdname")) > 1L) {
+    stop("Did not expect two @rdname's in a block")
+  }
   testthat_file <- list()
   longtests <- roxygen2::block_get_tags(block, "longtests")
   if (length(longtests) == 0L) { return(NULL) }
   testthat_file$longtests <- longtests
   testthat_file$examples <- roxygen2::block_get_tags(block, "examples")
   testthat_file$filename <- basename(block$file)
-  testthat_file$functionname <- ifelse(
-    !is.null(block$object) && !is.null(block$object$alias),
-    paste0('Function ', auto_quote(block$object$alias), '()'),
-    "[unknown alias]"
-  )
+  object <- block$object
+  testthat_file$functionname <- if (inherits(object, "s4method") && length(object$topic) > 0L) {
+    paste("Method", object$topic[[1L]])
+  } else if (length(object$alias) > 0L) { paste0("Function ", object$alias[[1L]], "()")
+  } else { "[unknown alias]" }
 
   if (!is.null(block$line)) {
     testthat_file$functionname <- paste0(
@@ -130,18 +99,24 @@ process_testfiles <- function(testfiles,
   results <- lapply(seq_along(testfiles), function(i) {
     testfile <- testfiles[[i]]
     content <- lapply(testfile, function(x) {
-      longtests <- lapply(x$longtests, function(l) l$raw)
+      longtests <- vapply(x$longtests, `[[`, character(1), "raw")
       longtests <- prepare_tests(longtests)
-      if (indent_code) { longtests <- indent_text(longtests) }
+      if (indent_code) {
+        longtests <- vapply(longtests, indent_text, character(1), USE.NAMES = FALSE)
+      }
       tests_name <- x$functionname
-      ifelse(
-        add_testthat_boilerplate,
-        paste0('test_that("', tests_name, '", {', "\n", longtests, "\n", "})\n"),
+      if (length(longtests) > 1L) {
+        tests_name <- c(tests_name, paste0(tests_name, " [", seq.int(2L, length(longtests)), "]"))
+      }
+      if (add_testthat_boilerplate) {
+        titles <- encodeString(tests_name, quote = '"')
+        paste0("test_that(", titles, ", {\n", longtests, "\n})\n")
+      } else {
         paste0("## ", tests_name, "\n", longtests, "\n")
-      )
+      }
     })
 
-    content <- paste0(content, collapse = "\n\n")
+    content <- paste(unlist(content, use.names = FALSE), collapse = "\n\n")
 
     path_quoted <- ifelse(
       paths[i] == "<text>",
@@ -149,8 +124,7 @@ process_testfiles <- function(testfiles,
       paste0('File R/', auto_quote(paths[i]), ': @longtests')
     )
 
-    content_header <-
-      paste0("# Generated by biocroxytest: do not edit by hand!\n\n")
+    content_header <- paste0("# Generated by biocroxytest: do not edit by hand!\n\n")
 
     content_header <- ifelse(
       add_context_header,
@@ -168,12 +142,8 @@ process_testfiles <- function(testfiles,
 
 #' Process blocks for 'longtests' roclet
 #'
-#' This is an internal function that processes a list of blocks for the
-#' 'longtests' roclet. It first collects and annotates the 'rdname' of the
-#' blocks. Then, it loops over each block and converts it to a testthat file
-#' using the 'block_to_testthat' function. If the resulting testthat file has a
-#' filename and contains 'longtests', it is added to the list of test files.
-#' Finally, it processes the test files using the 'process_testfiles' function.
+#' Convert each roxygen block independently and group the tests by source file.
+#' A shared documentation topic does not change the tests' source.
 #'
 #' @param blocks A list of roxygen2 blocks.
 #' @param ... Additional arguments.
@@ -182,24 +152,24 @@ process_testfiles <- function(testfiles,
 #'   processed test files.
 #' @keywords internal
 internal_longtests_roclet_process <- function(blocks, ...) {
-  blocks <- collect_annotate_rdname(blocks)
-
   longtestfiles <- list()
 
   for (block in blocks) {
     testthat <- block_to_testthat(block)
-    if (is.null(testthat$filename)) {
-      next
-    }
+    if (is.null(testthat$filename)) { next }
     if (length(testthat$longtests) > 0L) {
-      longtestfiles[[testthat$filename]] <-
-        c(longtestfiles[[testthat$filename]], list(testthat))
+      longtestfiles[[testthat$filename]] <- c(
+        longtestfiles[[testthat$filename]],
+        list(testthat)
+      )
     }
   }
 
-  list(longtests = process_testfiles(longtestfiles, indent_code = TRUE,
-                                     add_testthat_boilerplate = TRUE,
-                                     add_context_header = FALSE))
+  list(longtests = process_testfiles(
+    longtestfiles, indent_code = TRUE,
+    add_testthat_boilerplate = TRUE,
+    add_context_header = FALSE
+  ))
 }
 
 #' Write long test results to files
