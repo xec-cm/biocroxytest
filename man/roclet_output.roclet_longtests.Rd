@@ -2,42 +2,30 @@
 % Please edit documentation in R/longtests_rcolet.R
 \name{roclet_output.roclet_longtests}
 \alias{roclet_output.roclet_longtests}
-\title{Process blocks for 'longtests' roclet}
+\title{Update generated long tests}
 \usage{
 \method{roclet_output}{roclet_longtests}(x, results, base_path, ...)
 }
 \arguments{
-\item{x}{An object of class 'roclet_longtests'.
-package.}
+\item{x}{An object of class 'roclet_longtests'.}
 
-\item{results}{A list with a single element 'longtests', which contains the}
+\item{results}{The processed long tests.}
 
-\item{base_path}{A character string representing the base path of the}
+\item{base_path}{A character string representing the base path of the package.}
 
 \item{...}{Additional arguments passed to the function.}
 }
 \value{
-A list with a single element 'longtests', which contains the
-processed test files.
+The source filenames of the generated tests.
 }
 \description{
-This function processes a list of blocks for the 'longtests' roclet. It calls
-the 'internal_longtests_roclet_process' function with the specified blocks
-and additional arguments. The code in the tests is indented, a 'test_that'
-boilerplate is added to the tests, and a 'context' line is not added to the
-header.
+Validate the generated tests and their destinations before writing them.
+Remove obsolete generated files after the new output has been written.
 }
 \examples{
-# Set up a temporary directory
-base_path <- tempdir()
-longtests_path <- file.path(base_path, "longtests", "testthat")
-unlink(longtests_path, recursive = TRUE, force = TRUE)
-dir.create(longtests_path, recursive = TRUE, showWarnings = FALSE)
-
-# Create dummy inputs
+base_path <- tempfile()
+dir.create(file.path(base_path, "longtests", "testthat"), recursive = TRUE)
 obj <- longtests_roclet()
-results <- list(longtests = list())
-
-# Run the roclet_output function
-result <- roxygen2::roclet_output(obj, results, base_path)
+roxygen2::roclet_output(obj, list(longtests = list()), base_path)
+unlink(base_path, recursive = TRUE)
 }

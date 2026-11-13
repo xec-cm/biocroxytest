@@ -98,10 +98,8 @@ The shell examples below run from the repository root on macOS/Linux. Use an
 equivalent isolated directory on Windows. Keep the same shell for these commands.
 
 Create a disposable copy that includes the working changes before running tests
-or documentation examples. The current `test-roclet_clean.R` deletes its R
-session's `tempdir()`, and `use_longtests()` examples modify the working directory.
-Keep the copy outside that R session's temporary directory until these behaviors
-are corrected.
+or documentation examples. The `use_longtests()` examples modify the working
+directory. Keep the copy outside the R session's temporary directory.
 
 ```sh
 biocroxytest_scratch="$(mktemp -d)"

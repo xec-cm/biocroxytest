@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils_longtests_rcolet.R
 \name{internal_longtests_roclet_output}
 \alias{internal_longtests_roclet_output}
-\title{Write long test results to files}
+\title{Update generated long test files}
 \usage{
 internal_longtests_roclet_output(
   results,
@@ -11,20 +11,18 @@ internal_longtests_roclet_output(
 )
 }
 \arguments{
-\item{results}{A list of results.}
+\item{results}{A named list of generated R code.}
 
-\item{base_path}{The base path where the files will be written.}
+\item{base_path}{The destination directory.}
 
-\item{prefix}{The prefix that will be used to name the files.}
+\item{prefix}{The generated filename prefix.}
 }
 \value{
-A list of file paths.
+The source filenames of the generated tests.
 }
 \description{
-This function takes three arguments: results, base_path, and prefix. The
-function iterates over the elements of results and writes the content of each
-element to a file in the directory specified by base_path and prefix. If the
-file was not created by biocroxytest, the function informs the user that some
-files were not removed.
+Check every destination and parse every test before changing the output.
+Stage new files in the destination directory, then replace each file and
+remove obsolete generated files. Manual files are left in place.
 }
 \keyword{internal}

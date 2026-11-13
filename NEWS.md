@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Validate all generated long tests before replacing files, including with
+  `clean = TRUE`. Preserve hand-written tests and report name collisions (#3).
+
 * Generate a separate test for every `@longtests` tag, keeping tests with their
   source files even when they share an `@rdname`. Preserve multiline literals
   and generate valid test titles for S4 methods and non-syntactic names (#2).
