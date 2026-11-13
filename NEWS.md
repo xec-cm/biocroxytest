@@ -1,5 +1,10 @@
 # biocroxytest (development version)
 
+* Add `generated_test_inventory()` and `check_generated_tests()`. The
+  CI check reports missing, changed, and obsolete generated tests after
+  regenerating in a temporary copy (#7).
+* Use cli for setup and generation diagnostics.
+
 * Add `tests_roclet()` to generate ordinary `@tests` and Bioconductor
   `@longtests` together. Migrating dar in a temporary checkout preserved
   its ordinary test paths, descriptions and snapshots (#5, #6).

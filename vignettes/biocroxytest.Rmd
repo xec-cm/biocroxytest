@@ -159,6 +159,15 @@ testthat::test_that("Function foo() @ L11", {
 This file contains the long tests for the `foo()` function, ready to be run by 
 `r BiocStyle::Githubpkg("r-lib/testthat")`.
 
+## Check generated test files
+
+`biocroxytest::generated_test_inventory()` lists the source, output path,
+and suite for each generated file. In the consumer package's CI, run
+`Rscript --vanilla -e 'biocroxytest::check_generated_tests()'` from its
+root after installing its development dependencies. The check regenerates
+files in a temporary copy and fails if output is missing, changed, or obsolete.
+Regenerate with `roxygen2::roxygenise()` and commit the updates.
+
 ## Session info
 
 ```{r}
