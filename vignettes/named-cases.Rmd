@@ -1,0 +1,143 @@
+---
+title: "Named cases, fixtures and failure replay"
+output: rmarkdown::html_vignette
+description: >
+  Share assertions across suites, record which cases ran, and turn a
+  reproducible failure into a smaller regression test.
+vignette: >
+  %\VignetteIndexEntry{Named cases, fixtures and failure replay}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+This guide uses the [GitHub development build](https://github.com/xec-cm/biocroxytest/tree/devel).
+Set up the unified roclet and your test suites as described in
+[Introduction to biocroxytest](biocroxytest.html). The named-case runners
+require testthat 3.3.0 or newer.
+
+## Share assertions across suites
+
+In an `@testCases` tag, give the group a name and provide a literal list
+of named cases and a shared `test` block. Each case chooses a suite and can
+provide setup code. The setup and test run together in the same testthat
+environment, once per case.
+
+```{r named-declaration, eval=FALSE}
+#' Increment an integer vector
+#'
+#' @param x An integer vector.
+#' @return An integer vector.
+#' @export
+#' @testCases arithmetic
+#' list(
+#'   cases = list(
+#'     small = list(suite = "tests", setup = { x <- 2L }),
+#'     large = list(suite = "longtests", setup = { x <- seq_len(10000L) })
+#'   ),
+#'   test = { expect_identical(increment(x), x + 1L) }
+#' )
+increment <- function(x) x + 1L
+```
+
+Each ID combines the group and case names, so `arithmetic/large` keeps
+its ID if the declaration moves to another source file or suite. The
+planner reads declarations without loading the consumer package.
+
+```{r plan-and-run, eval=FALSE}
+before <- biocroxytest::test_case_plan()
+roxygen2::roxygenise()
+biocroxytest::run_test_case("arithmetic/large")
+
+# After editing the declarations
+biocroxytest::compare_test_plans(before, biocroxytest::test_case_plan())
+```
+
+The comparison reports additions, removals, suite moves and changes to
+test code or fixtures. Use the full suite to exercise custom runners or
+dependencies between cases.
+
+## Pin fixture files
+
+Add `fs` to the consumer package's `Suggests` and declare fixtures in
+the case's `fixtures` list. For a local file, use a path relative to the
+case's suite directory and obtain its checksum with `tools::md5sum()`.
+For example, put `counts.tsv` in `tests/testthat/`, then use this entry in
+the named `cases` list.
+
+```r
+table = list(
+  suite = "tests",
+  fixtures = list(
+    counts = list(source = "counts.tsv", md5 = "<32-digit checksum>")
+  )
+)
+```
+
+Read the verified file in the setup or test using
+`fixture_paths[["counts"]]`. A required fixture with missing or different
+bytes blocks execution in the named runner. Set `required = FALSE` to
+handle unavailability as an `NA_character_` path.
+
+For an HTTPS source, install BiocFileCache and run
+`biocroxytest::run_test_plan(download_fixtures = TRUE)` to allow downloads.
+Later runs can reuse the verified cache offline. Standard testthat runs
+check local fixtures and skip cases that require a remote fixture.
+Keep generated or temporary data setup in the case, with cleanup for
+files such as HDF5 backing stores.
+
+## Record what ran
+
+```{r execution-evidence, eval=FALSE}
+evidence <- biocroxytest::run_test_plan(ids = "arithmetic/large", seed = 42L)
+evidence$cases
+evidence$fixtures
+```
+
+Each case runs in a fresh R session and temporary package copy. The
+report records the source fingerprint, elapsed time, fixture checks and
+R environment. A `completed` case reached the end with a passing
+assertion and no skips. The other states are `failed`, `skipped`,
+`incomplete` and `missing`. For example, stale generated code or a
+skip after a passing assertion is incomplete.
+
+## Replay a failed case
+
+If the case is `failed`, save its record outside the package tree so it
+does not change the source fingerprint.
+
+```{r replay-failure, eval=FALSE}
+record <- biocroxytest::write_test_replay(
+  evidence, "arithmetic/large", "../arithmetic-failure.rds"
+)
+record$command
+replayed <- biocroxytest::replay_test_case("../arithmetic-failure.rds")
+replayed$comparison
+```
+
+Replay checks the package revision and fixture identities, restores the
+base R seed and reports whether failure messages and available source
+locations matched. It also reports changes to the recorded environment.
+Use the same package source and fixtures, and set backend-specific seeds
+in the case setup when needed.
+
+## Reduce a paired failure
+
+For a paired SummarizedExperiment with two conditions and one sample per
+condition per pair, `biocroxytest::reduce_paired_failure()` can find a
+smaller regression fixture. Supply the pair and condition columns, an
+additive design and a checker that returns a stable identifier for the
+target failure or `NULL` when it is absent.
+
+```{r reduce-paired, eval=FALSE}
+reduced <- biocroxytest::reduce_paired_failure(
+  x, pair = "subject", condition = "visit", design = ~ subject + visit,
+  check = check_known_failure
+)
+dim(reduced$data)
+reduced$failure
+```
+
+The reducer removes rows and whole pairs, keeps a full-rank design with
+positive residual degrees of freedom, and checks the final subset again.
+Review it before writing an ordinary test of the expected correct
+behavior. An HDF5-backed subset still uses its backing file.
