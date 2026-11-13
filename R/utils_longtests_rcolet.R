@@ -34,16 +34,18 @@ test_title <- function(block, suite) {
   title
 }
 
-process_test_suites <- function(blocks, suites) {
+process_test_suites <- function(blocks, suites, cases = NULL) {
   for (block in blocks) {
     if (length(roxygen2::block_get_tags(block, "rdname")) > 1L) {
       cli::cli_abort("Did not expect two {.code @rdname} tags in a block.", call = NULL)
     }
   }
-  stats::setNames(lapply(suites, function(suite) process_test_suite(blocks, suite)), suites)
+  stats::setNames(lapply(suites, function(suite) {
+    process_test_suite(blocks, suite, cases)
+  }), suites)
 }
 
-process_test_suite <- function(blocks, suite) {
+process_test_suite <- function(blocks, suite, cases) {
   tests <- list()
   for (block in blocks) {
     tags <- roxygen2::block_get_tags(block, suite)
@@ -61,6 +63,11 @@ process_test_suite <- function(blocks, suite) {
     ))
   }
 
+  rows <- cases[cases$suite == suite, , drop = FALSE]
+  for (i in seq_along(rows$id)) {
+    path <- basename(rows$source[i])
+    tests[[path]] <- c(tests[[path]], paste0(rows$code[i], "\n"))
+  }
   paths <- names(tests)
   stats::setNames(lapply(paths, function(path) {
     source <- if (path == "<text>") path else paste0("File R/", auto_quote(path), ": @", suite)

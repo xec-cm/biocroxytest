@@ -114,6 +114,40 @@ configuration and its generated files. Packages using roxytest’s
 `@testexamples` can keep its roclet alongside `longtests_roclet` until
 those tests have been migrated.
 
+## Share a test across named cases
+
+With `biocroxytest::tests_roclet`, put a literal list in an `@testCases`
+tag. Each case chooses a suite and can prepare its own inputs. The
+shared body runs once per case.
+
+``` r
+#' @testCases arithmetic
+#' list(
+#'   cases = list(
+#'     small = list(suite = "tests", setup = { x <- 2L }),
+#'     large = list(suite = "longtests", setup = { x <- 1000L })
+#'   ),
+#'   test = { expect_identical(increment(x), x + 1L) }
+#' )
+increment <- function(x) x + 1L
+```
+
+``` r
+before <- biocroxytest::test_case_plan()
+roxygen2::roxygenise()
+biocroxytest::run_test_case("arithmetic/large")
+
+# After editing the declarations:
+biocroxytest::compare_test_plans(before, biocroxytest::test_case_plan())
+```
+
+IDs use the group and case names and survive changes of file or suite.
+The planner reads declarations without loading the consumer package. The
+generator leaves fixture creation to test execution. The local runner
+uses the selected suite’s testthat helpers, setup and teardown in a
+temporary copy to protect existing snapshots. Run the full suite to
+review snapshot changes and exercise any custom suite runner.
+
 ## Check generated tests in CI
 
 List the generated files, their source files, and their suites with

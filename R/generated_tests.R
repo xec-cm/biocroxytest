@@ -41,12 +41,7 @@ generated_test_inventory <- function(path = ".") {
 #' @export
 check_generated_tests <- function(path = ".") {
   path <- test_package_path(path)
-  copy <- tempfile("biocroxytest-check-", tmpdir = fs::path_real(tempdir()))
-  relative <- fs::path_rel(copy, start = path)
-  if (!startsWith(relative, "../") && !fs::is_absolute_path(relative)) {
-    cli::cli_abort("The temporary directory must be outside the package.",
-                   class = "biocroxytest_test_check_input", call = NULL)
-  }
+  copy <- test_package_copy_path(path)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
   copy_test_package(path, copy)
 
@@ -64,6 +59,16 @@ check_generated_tests <- function(path = ".") {
   changes <- compare_test_inventory(before, after, contents, copy)
   if (nrow(changes)) { abort_stale_tests(changes) }
   invisible(TRUE)
+}
+
+test_package_copy_path <- function(path) {
+  copy <- tempfile("biocroxytest-", tmpdir = fs::path_real(tempdir()))
+  relative <- fs::path_rel(copy, start = path)
+  if (!startsWith(relative, "../") && !fs::is_absolute_path(relative)) {
+    cli::cli_abort("The temporary directory must be outside the package.",
+                   class = "biocroxytest_test_check_input", call = NULL)
+  }
+  copy
 }
 
 test_package_path <- function(path) {

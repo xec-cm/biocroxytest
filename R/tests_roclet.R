@@ -4,6 +4,7 @@
 #' Write test bodies in `@tests` for ordinary tests or `@longtests` for
 #' Bioconductor long tests. Each tag becomes a separate testthat test. Use
 #' `usethis::use_testthat()` and [use_longtests()] to set up the suites you use.
+#' Use `@testCases` to share a test body across named cases. See [test_case_plan()].
 #'
 #' To migrate `@tests` from roxytest, replace its testthat roclet with this
 #' roclet. It retains the roxytest filename prefix and updates ownership
@@ -50,7 +51,8 @@ ensure_tests_tag_parser <- function() {
 #' @export
 roclet_process.roclet_biocroxytest_tests <- function(x, blocks, env, base_path) {
   check_test_roclets(resolved = TRUE)
-  process_test_suites(blocks, c("tests", "longtests"))
+  cases <- collect_test_cases(blocks, check_origin = TRUE)
+  process_test_suites(blocks, c("tests", "longtests"), cases)
 }
 
 #' @importFrom roxygen2 roclet_output
