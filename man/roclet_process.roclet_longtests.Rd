@@ -2,7 +2,7 @@
 % Please edit documentation in R/longtests_rcolet.R
 \name{roclet_process.roclet_longtests}
 \alias{roclet_process.roclet_longtests}
-\title{Process blocks for 'longtests' roclet}
+\title{Process blocks for the long test roclet}
 \usage{
 \method{roclet_process}{roclet_longtests}(x, blocks, env, base_path)
 }
@@ -21,11 +21,7 @@ A list with a single element 'longtests', which contains the
 processed test files.
 }
 \description{
-This function processes a list of blocks for the 'longtests' roclet. It calls
-the 'internal_longtests_roclet_process' function with the specified blocks
-and additional arguments. The code in the tests is indented, a 'test_that'
-boilerplate is added to the tests, and a 'context' line is not added to the
-header.
+Generate a testthat test for each \verb{@longtests} tag, grouped by source file.
 }
 \examples{
 # Create a dummy block function

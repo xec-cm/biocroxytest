@@ -1,5 +1,5 @@
 Package: biocroxytest
-Title: Handle Long Tests in Bioconductor Packages
+Title: Generate Ordinary and Long Tests for Bioconductor Packages
 Version: 1.1.0
 Authors@R: 
     c(person(given = "Francesc",
@@ -8,15 +8,11 @@ Authors@R:
              email = "fcatala@irsicaixa.es",
              comment = c(ORCID = "0000-0002-2354-8648"))
     )
-Description: This package provides a roclet for roxygen2 that identifies and 
-    processes code blocks in your documentation marked with `@longtests`. These
-    blocks should contain tests that take a long time to run and thus cannot be 
-    included in the regular test suite of the package. When you run 
-    `roxygen2::roxygenise` with the `longtests_roclet`, it will extract these 
-    long tests from your documentation and save them in a separate directory.
-    This allows you to run these long tests separately from the rest of your 
-    tests, for example, on a continuous integration server that is set up to 
-    run long tests.
+Description: Generates ordinary and long 'testthat' tests from 'roxygen2'
+    tags in package source files. Ordinary tests are included in the regular
+    package check. Long tests can be run separately, including on the
+    Bioconductor build system. The ordinary test filename prefix is compatible
+    with 'roxytest'.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("rd", "collate", "namespace"))
@@ -33,6 +29,7 @@ Suggests:
     here,
     knitr,
     rmarkdown,
+    roxytest,
     testthat (>= 3.0.0)
 Depends: R (>= 4.4.0)
 Config/testthat/edition: 3

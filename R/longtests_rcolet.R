@@ -49,13 +49,9 @@ roxy_tag_parse.roxy_tag_longtests <- function(x) {
   x
 }
 
-#' Process blocks for 'longtests' roclet
+#' Process blocks for the long test roclet
 #'
-#' This function processes a list of blocks for the 'longtests' roclet. It calls
-#' the 'internal_longtests_roclet_process' function with the specified blocks
-#' and additional arguments. The code in the tests is indented, a 'test_that'
-#' boilerplate is added to the tests, and a 'context' line is not added to the
-#' header.
+#' Generate a testthat test for each `@longtests` tag, grouped by source file.
 #'
 #' @param x An object of class 'roclet_longtests'.
 #' @param blocks A list of roxygen2 blocks.
@@ -95,12 +91,7 @@ roxy_tag_parse.roxy_tag_longtests <- function(x) {
 #' # Process the blocks
 #' roxygen2::roclet_process(x, blocks, env, base_path)
 roclet_process.roclet_longtests <- function(x, blocks, env, base_path) {
-  internal_longtests_roclet_process(
-    blocks = blocks,
-    indent_code = TRUE,
-    add_testthat_boilerplate = TRUE,
-    add_context_header = FALSE
-  )
+  process_test_suites(blocks, "longtests")
 }
 
 #' Update generated long tests
@@ -123,11 +114,7 @@ roclet_process.roclet_longtests <- function(x, blocks, env, base_path) {
 #' unlink(base_path, recursive = TRUE)
 roclet_output.roclet_longtests <- function(x, results, base_path, ...) {
   verify_longtests_used(base_path)
-  internal_longtests_roclet_output(
-    results = results$longtests,
-    base_path = file.path(base_path, "longtests", "testthat"),
-    prefix = "test-biocroxytest-longtests-"
-  )
+  write_test_suites(list(longtests = results$longtests), base_path)
 }
 
 #' Defer cleanup of generated long tests

@@ -1,5 +1,9 @@
 # biocroxytest (development version)
 
+* Add `tests_roclet()` to generate ordinary `@tests` and Bioconductor
+  `@longtests` together. Migrating dar in a temporary checkout preserved
+  its ordinary test paths, descriptions and snapshots (#5, #6).
+
 * Make `use_longtests()` safe to rerun. Create a runner for the package in
   `DESCRIPTION`, preserve existing runners, and update the active BBS option
   while retaining comments and unrelated settings (#4).
