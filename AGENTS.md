@@ -25,13 +25,14 @@ request. Read any more-specific directory instructions before editing there.
 
 ## Repository map and roadmap
 
-This R package uses roxygen2 roclets to generate testthat files. Current public
-entry points are `longtests_roclet()` and `use_longtests()`. Preserve their supported
-behavior while adding the unified ordinary/long test workflow.
+This R package uses roxygen2 roclets to generate testthat files. Use
+`tests_roclet()` for ordinary and long tests, `longtests_roclet()` for long tests
+alone, and `use_longtests()` to set up Bioconductor long tests.
 
 | Location | Purpose |
 | --- | --- |
 | `R/longtests_rcolet.R` | Roclet registration and lifecycle |
+| `R/tests_roclet.R` | Unified roclet and checks for competing generators |
 | `R/utils_longtests_rcolet.R` | Block processing, output and cleanup |
 | `R/made_by.R` | Generated-file ownership |
 | `R/use_longtests.R`, `R/verify_longtests.R` | Setup and configuration checks |
