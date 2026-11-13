@@ -5,14 +5,15 @@
 #' treated as generated files.
 #'
 #' @param path A character string representing the path of the file to check.
-#' @param suite The test suite, either `"tests"` or `"longtests"`.
+#' @param suite The output kind, `"tests"`, `"testexamples"` or `"longtests"`.
 #' @return TRUE for a generated file, FALSE otherwise.
 #' @keywords internal
 made_by_biocroxytest <- function(path, suite = "longtests") {
-  pattern <- if (suite == "tests") "^test-roxytest-tests-" else "^test-biocroxytest-"
+  prefix <- if (suite == "longtests") "test-biocroxytest-" else test_prefix(suite)
+  pattern <- paste0("^", prefix)
   if (!grepl(paste0(pattern, ".*[.][Rr]$"), basename(path))) { return(FALSE) }
   if (!file.exists(path) || dir.exists(path) || is_symlink(path)) { return(FALSE) }
-  headers <- if (suite == "tests") c(generated_test_header, roxytest_header) else {
+  headers <- if (suite != "longtests") c(generated_test_header, roxytest_header) else {
     generated_test_header
   }
   # The marker is ASCII. Compare bytes so a locale conversion cannot truncate

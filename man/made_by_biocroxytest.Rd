@@ -9,7 +9,7 @@ made_by_biocroxytest(path, suite = "longtests")
 \arguments{
 \item{path}{A character string representing the path of the file to check.}
 
-\item{suite}{The test suite, either \code{"tests"} or \code{"longtests"}.}
+\item{suite}{The output kind, \code{"tests"}, \code{"testexamples"} or \code{"longtests"}.}
 }
 \value{
 TRUE for a generated file, FALSE otherwise.

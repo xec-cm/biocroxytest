@@ -1,9 +1,9 @@
 #' List and check generated tests
 #'
 #' The inventory lists owned test files in `tests/testthat` and
-#' `longtests/testthat`. It includes ordinary `@tests` files from roxytest
-#' that biocroxytest can adopt. Manual tests, helpers, snapshots, and
-#' roxytest `@testexamples` are excluded.
+#' `longtests/testthat`. It includes `@tests` and `@testexamples` files from
+#' roxytest that biocroxytest can adopt.
+#' Manual tests, helpers and snapshots are excluded.
 #'
 #' The check regenerates tests in a temporary copy using the package's
 #' roxygen configuration and a fresh R session. It checks both suites for
@@ -89,9 +89,18 @@ collect_test_inventory <- function(path, suites = c("tests", "longtests")) {
       return(NULL)
     }
     files <- fs::dir_ls(dirs[2L], type = "file")
-    files <- files[vapply(files, made_by_biocroxytest, logical(1), suite = suite)]
+    files <- files[vapply(files, function(file) {
+      kind <- if (suite == "tests" && startsWith(basename(file), example_test_prefix)) {
+        "testexamples"
+      } else {
+        suite
+      }
+      made_by_biocroxytest(file, kind)
+    }, logical(1))]
     names <- sort(basename(files), method = "radix")
     source <- substring(names, nchar(test_prefix(suite)) + 1L)
+    example <- suite == "tests" & startsWith(names, example_test_prefix)
+    source[example] <- substring(names[example], nchar(example_test_prefix) + 1L)
     # Early long-test versions were also allowed to use the shorter ownership prefix.
     legacy <- suite == "longtests" & !startsWith(names, test_prefix(suite))
     source[legacy] <- substring(names[legacy], nchar("test-biocroxytest-") + 1L)

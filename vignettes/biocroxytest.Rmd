@@ -65,13 +65,25 @@ After `roxygen2::roxygenise()`, files under `tests/testthat` run with
 `R CMD check --test-dir=longtests` on the built source package.
 Put helpers in the suite that uses them.
 
-To migrate a package using roxytest's `@tests`, replace its testthat roclet
+To migrate a package using roxytest's `@tests` or `@testexamples`, replace its testthat roclet
 with `biocroxytest::tests_roclet` in a disposable copy. Regenerate and review
 the diff before adopting it. The roxytest filename prefix is retained and the
 ownership header is updated. Tests in shared `@rdname` topics follow their
 original source files. Review and migrate snapshots if a test moves or its
 description changes.
-Keep roxytest for projects that still use its `@testexamples` tag.
+
+## Test documented examples
+
+With `tests_roclet()`, put assertions in `@testexamples` to run them after
+the topic's direct examples in the same testthat environment. The generator
+uses R's Rd example renderer. Code inside `\dontrun{}` is omitted.
+`\dontshow{}` and `\donttest{}` execute in the generated test. Each
+`@examplesIf` condition runs in sequence with the examples and skips the
+whole test if false. This lets assertions safely reuse values from the
+conditional example. Keep the conditions side-effect free when possible.
+Rd platform directives are resolved at generation time. This workflow uses
+direct examples and rejects Rd `\Sexpr{}` expressions. Inherited examples
+and templates are outside this workflow.
 
 ## Long-test-only setup
 

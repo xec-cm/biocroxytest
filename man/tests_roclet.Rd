@@ -15,9 +15,10 @@ Write test bodies in \verb{@tests} for ordinary tests or \verb{@longtests} for
 Bioconductor long tests. Each tag becomes a separate testthat test. Use
 \code{usethis::use_testthat()} and \code{\link[=use_longtests]{use_longtests()}} to set up the suites you use.
 Use \verb{@testCases} to share a test body across named cases. See \code{\link[=test_case_plan]{test_case_plan()}}.
+Use \verb{@testexamples} to run documented examples before testing their results.
 }
 \details{
-To migrate \verb{@tests} from roxytest, replace its testthat roclet with this
+To migrate \verb{@tests} or \verb{@testexamples} from roxytest, replace its testthat roclet with this
 roclet. It retains the roxytest filename prefix and updates ownership
 headers. Tests in shared \verb{@rdname} topics follow their original source files,
 so review any changed test names and snapshot paths after regenerating.

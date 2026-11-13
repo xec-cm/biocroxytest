@@ -31,20 +31,21 @@ test_that("the inventory lists owned tests by suite and source", {
   pkg <- new_generated_test_fixture()
   on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
   expected <- data.frame(
-    suite = c("tests", "tests", "longtests"),
-    source = c("R/a.R", "R/z.r", "R/a.R"),
-    path = c("tests/testthat/test-roxytest-tests-a.R",
+    suite = c("tests", "tests", "tests", "longtests"),
+    source = c("R/a.R", "R/a.R", "R/z.r", "R/a.R"),
+    path = c("tests/testthat/test-roxytest-testexamples-a.R",
+             "tests/testthat/test-roxytest-tests-a.R",
              "tests/testthat/test-roxytest-tests-z.r",
              "longtests/testthat/test-biocroxytest-longtests-a.R")
   )
   expect_identical(generated_test_inventory(pkg), expected[0, ])
 
-  writeLines(roxytest_header, file.path(pkg, expected$path[2L]))
-  writeLines(generated_test_header, file.path(pkg, expected$path[3L]))
-  writeLines(generated_test_header, file.path(pkg, expected$path[1L]))
+  writeLines(roxytest_header, file.path(pkg, expected$path[3L]))
+  writeLines(generated_test_header, file.path(pkg, expected$path[4L]))
+  writeLines(generated_test_header, file.path(pkg, expected$path[2L]))
   writeLines(paste(roxytest_header, "(manual)"),
              file.path(pkg, "tests/testthat/test-roxytest-tests-manual.R"))
-  writeLines(roxytest_header, file.path(pkg, "tests/testthat/test-roxytest-testexamples-a.R"))
+  writeLines(roxytest_header, file.path(pkg, expected$path[1L]))
   writeLines(generated_test_header, file.path(pkg, "tests/testthat/helper-a.R"))
   manual <- file.path(pkg, "tests/testthat/test-roxytest-tests-manual.R")
   for (suffix in list(as.raw(c(195L, 169L)), as.raw(0L), as.raw(255L))) {
@@ -82,7 +83,8 @@ test_that("freshness checks regenerate in a fresh process and leave the source u
   ), file.path(pkg, "R/process-check.R"))
   writeLines("gitdir: fake-worktree", file.path(pkg, ".git"))
   writeLines("# Manual test", file.path(pkg, "tests/testthat/test-manual.R"))
-  writeLines(roxytest_header, file.path(pkg, "tests/testthat/test-roxytest-testexamples-a.R"))
+  writeLines("# Manual example test",
+             file.path(pkg, "tests/testthat/test-roxytest-testexamples-a.R"))
 
   cwd <- getwd()
   before <- generated_test_fixture_state(pkg)
