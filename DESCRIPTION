@@ -21,7 +21,8 @@ License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("rd", "collate", "namespace"))
 RoxygenNote: 7.3.0
-URL: https://github.com/xec-cm/biocroxytest
+URL: https://github.com/xec-cm/biocroxytest,
+    https://xec-cm.github.io/biocroxytest/
 BugReports: https://github.com/xec-cm/biocroxytest/issues
 biocViews: Software, Infrastructure
 Imports: 
