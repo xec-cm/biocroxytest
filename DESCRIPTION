@@ -26,6 +26,7 @@ Imports:
     fs,
     roxygen2
 Suggests: 
+    BiocFileCache,
     BiocStyle,
     DelayedArray,
     HDF5Array,

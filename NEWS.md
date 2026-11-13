@@ -1,5 +1,9 @@
 # biocroxytest (development version)
 
+* Declare checksummed fixtures for named cases. Check required files before
+  execution, record fixture evidence and reuse optional HTTPS downloads
+  through BiocFileCache (#13).
+
 * Add `run_test_plan()` to report which named cases ran, how long they
   took and the package revision and R environment used (#12).
 * Keep test fixture output out of the progress reporter.

@@ -4,7 +4,13 @@
 \alias{run_test_case}
 \title{Run one generated test case by ID}
 \usage{
-run_test_case(id, path = ".", reporter = "summary")
+run_test_case(
+  id,
+  path = ".",
+  reporter = "summary",
+  download_fixtures = FALSE,
+  fixture_cache = NULL
+)
 }
 \arguments{
 \item{id}{An exact case ID from \code{\link[=test_case_plan]{test_case_plan()}}.}
@@ -12,6 +18,12 @@ run_test_case(id, path = ".", reporter = "summary")
 \item{path}{Path to the source package root.}
 
 \item{reporter}{A testthat reporter name or object.}
+
+\item{download_fixtures}{Allow HTTPS downloads of declared fixtures when
+a verified copy is unavailable in the cache. Defaults to \code{FALSE}.}
+
+\item{fixture_cache}{BiocFileCache directory. \code{NULL} uses the package's
+user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
 }
 \value{
 The testthat results, invisibly. Inspect these results for failures.
