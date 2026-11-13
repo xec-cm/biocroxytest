@@ -78,10 +78,8 @@ run_test_case <- function(id, path = ".", reporter = "summary") {
   case <- plan[index, ]
   file <- file.path(path, case$path)
   verify_generated_case(file, case)
-  if (!requireNamespace("testthat", quietly = TRUE) ||
-      utils::packageVersion("testthat") < "3.3.0") {
-    cli::cli_abort("Running a named case requires testthat 3.3.0 or newer.", call = NULL)
-  }
+  require_case_testthat()
+
   copy <- test_package_copy_path(path)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
   copy_test_package(path, copy)
@@ -91,16 +89,27 @@ run_test_case <- function(id, path = ".", reporter = "summary") {
                      desc = case$description, package = package)
 }
 
+require_case_testthat <- function() {
+  if (!requireNamespace("testthat", quietly = TRUE) ||
+      utils::packageVersion("testthat") < "3.3.0") {
+    cli::cli_abort("Running a named case requires testthat 3.3.0 or newer.", call = NULL)
+  }
+}
+
 verify_generated_case <- function(file, case) {
   if (made_by_biocroxytest(file, case$suite)) {
-    code <- parse(file, encoding = "UTF-8", keep.source = FALSE)
+    code <- parse(file, encoding = "UTF-8", keep.source = TRUE)
     expected <- parse(text = case$code, encoding = "UTF-8", keep.source = FALSE)[[1L]]
     matches <- vapply(code, function(expr) {
       is.call(expr) && identical(expr[[1L]], quote(test_that)) &&
         length(expr) >= 2L && identical(expr[[2L]], case$description)
     }, logical(1))
-    if (sum(matches) == 1L && identical(code[[which(matches)]], expected)) {
-      return(invisible(NULL))
+    if (sum(matches) == 1L) {
+      index <- which(matches)
+      selected <- code[[index]]
+      if (identical(utils::removeSource(selected), expected)) {
+        return(invisible(as.integer(attr(code, "srcref")[[index]])))
+      }
     }
   }
   cli::cli_abort(c(

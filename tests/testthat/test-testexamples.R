@@ -15,7 +15,7 @@ new_testexamples_package <- function() {
 }
 
 generate_testexamples <- function(pkg, clean = FALSE) {
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source, clean = clean)
+  roxygenise_fixture(pkg, clean = clean)
 }
 
 testexamples_results <- function(pkg) {
@@ -108,10 +108,10 @@ test_that("freshness notices a changed example file without modifying generated 
   path <- "tests/testthat/test-roxytest-testexamples-external.R"
   generated <- file.path(pkg, path)
   before <- readBin(generated, "raw", n = file.size(generated))
-  expect_true(check_generated_tests(pkg))
+  expect_true(check_generated_fixture(pkg))
 
   writeLines("value <- 2L", example)
-  stale <- expect_error(check_generated_tests(pkg), class = "biocroxytest_stale_tests")
+  stale <- expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
   expect_identical(stale$changes, data.frame(
     status = "changed", suite = "tests", source = "R/external.R", path = path
   ))
@@ -168,9 +168,7 @@ test_that("example grouping uses the Rd filename and describeIn target", {
     "#' @examples stop('This example is outside the Rd topic')",
     "NULL"
   ), file.path(pkg, "R", "hidden.R"))
-  roxygen2::roxygenise(
-    pkg, roclets = c("rd", "biocroxytest::tests_roclet"), load_code = roxygen2::load_source
-  )
+  roxygenise_fixture(pkg, roclets = c("rd", "biocroxytest::tests_roclet"))
   expect_identical(testexamples_results(pkg)$passed, 1L)
   # @describeIn resolves the object topic, independently of the @name above.
   writeLines(c(
@@ -200,7 +198,7 @@ test_that("a platform directive can render an empty example", {
 })
 
 test_that("a migrated testexamples file keeps roxytest's path and title", {
-  skip_if_not_installed("roxytest")
+  suppressPackageStartupMessages(skip_if_not_installed("roxytest"))
   pkg <- new_testexamples_package()
   withr::local_dir(pkg)
   writeLines(c(
@@ -209,7 +207,7 @@ test_that("a migrated testexamples file keeps roxytest's path and title", {
     "#' @testexamples expect_identical(value, 1L)",
     "simple <- function() NULL"
   ), "R/simple.R")
-  roxygen2::roxygenise(roclets = "roxytest::testthat_roclet", load_code = roxygen2::load_source)
+  roxygenise_fixture(roclets = "roxytest::testthat_roclet")
   path <- "tests/testthat/test-roxytest-testexamples-simple.R"
   expect_identical(readLines(path, n = 1L), roxytest_header)
   legacy <- parse(path)[[1L]]
@@ -229,7 +227,7 @@ test_that("a migrated testexamples file keeps roxytest's path and title", {
 })
 
 test_that("migrating an S4 example test preserves its roxytest title", {
-  skip_if_not_installed("roxytest")
+  suppressPackageStartupMessages(skip_if_not_installed("roxytest"))
   pkg <- new_testexamples_package()
   withr::local_dir(pkg)
   writeLines(c(
@@ -239,7 +237,7 @@ test_that("migrating an S4 example test preserves its roxytest title", {
     "#' @testexamples expect_identical(value, 1L)",
     "setMethod('example_method', 'numeric', function(x) x)"
   ), "R/method.R")
-  roxygen2::roxygenise(roclets = "roxytest::testthat_roclet", load_code = roxygen2::load_source)
+  roxygenise_fixture(roclets = "roxytest::testthat_roclet")
   path <- "tests/testthat/test-roxytest-testexamples-method.R"
   legacy_title <- parse(path)[[1L]][[2L]]
   generate_testexamples(pkg)

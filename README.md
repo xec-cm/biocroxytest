@@ -172,6 +172,23 @@ uses the selected suite’s testthat helpers, setup and teardown in a
 temporary copy to protect existing snapshots. Run the full suite to
 review snapshot changes and exercise any custom suite runner.
 
+## Record named test results
+
+``` r
+evidence <- biocroxytest::run_test_plan()
+evidence$cases
+```
+
+The report records each case’s status and duration alongside the
+revision fingerprint and R environment. Pass `ids` to record selected
+cases. `completed` requires a passing assertion and reaching the end of
+the case without skips. Failed assertions, explicit skips, incomplete
+execution and missing results have their own statuses. A stale generated
+case is incomplete. Regenerate tests before recording evidence.
+
+Each case runs in a fresh R session and a temporary copy, with its
+suite’s testthat helpers, setup and teardown.
+
 ## Check generated tests in CI
 
 List the generated files, their source files, and their suites with

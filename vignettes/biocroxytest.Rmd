@@ -185,6 +185,11 @@ the test files, `run_test_case("group-name/case-name")` runs one case.
 `compare_test_plans(before, after)` reports additions, removals, suite
 moves, and changes to the expectations or setup for the same ID.
 
+Use `run_test_plan()` to record execution status, duration and the R environment
+for all named cases or a selection by ID. Each case runs in a fresh R session
+in a temporary package copy. The report includes a fingerprint of the copied
+package revision. A case that skips after a passing assertion is incomplete.
+
 ## Check generated test files
 
 `biocroxytest::generated_test_inventory()` lists the source, output path,

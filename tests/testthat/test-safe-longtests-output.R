@@ -39,12 +39,7 @@ test_that("roxygenise validates every generated file before changing longtests",
   )
 
   generate <- function(clean) {
-    roxygen2::roxygenise(
-      pkg,
-      roclets = "biocroxytest::longtests_roclet",
-      load_code = roxygen2::load_source,
-      clean = clean
-    )
+    roxygenise_fixture(pkg, roclets = "biocroxytest::longtests_roclet", clean = clean)
   }
   for (clean in c(FALSE, TRUE)) {
     expect_error(generate(clean), "b[.]R")
@@ -123,12 +118,7 @@ test_that("Unicode filename aliases cannot replace or remove an existing test", 
     file.path(pkg, "R", "caf\u00e9.R")
   )
   expect_error(
-    roxygen2::roxygenise(
-      pkg,
-      roclets = "biocroxytest::longtests_roclet",
-      load_code = roxygen2::load_source,
-      clean = TRUE
-    ),
+    roxygenise_fixture(pkg, roclets = "biocroxytest::longtests_roclet", clean = TRUE),
     "collides"
   )
   expect_identical(list.files(dest, all.files = TRUE, no.. = TRUE), basename(old))

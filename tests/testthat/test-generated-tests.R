@@ -72,7 +72,7 @@ test_that("freshness checks regenerate in a fresh process and leave the source u
   writeLines(a_code, a)
   old <- file.path(pkg, "R/old.R")
   writeLines(c("#' @longtests expect_true(old())", "old <- function() TRUE"), old)
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
 
   # Fail if the checker loads the original package or copies its Git metadata.
   source_dir <- encodeString(normalizePath(pkg, winslash = "/"), quote = '"')
@@ -88,7 +88,7 @@ test_that("freshness checks regenerate in a fresh process and leave the source u
 
   cwd <- getwd()
   before <- generated_test_fixture_state(pkg)
-  expect_identical(withVisible(check_generated_tests(pkg)), list(value = TRUE, visible = FALSE))
+  expect_identical(withVisible(check_generated_fixture(pkg)), list(value = TRUE, visible = FALSE))
   expect_identical(generated_test_fixture_state(pkg), before)
   expect_identical(getwd(), cwd)
 
@@ -97,7 +97,7 @@ test_that("freshness checks regenerate in a fresh process and leave the source u
   writeLines(c("#' @longtests expect_true(b())", "b <- function() TRUE"), file.path(pkg, "R/b.R"))
   unlink(old)
   before <- generated_test_fixture_state(pkg)
-  stale <- expect_error(check_generated_tests(pkg), class = "biocroxytest_stale_tests")
+  stale <- expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
   expect_identical(stale$changes, data.frame(
     status = c("missing", "changed", "obsolete"),
     suite = c("longtests", "tests", "longtests"),
@@ -118,14 +118,14 @@ test_that("freshness normalizes line endings and detects other byte differences"
   writeLines(c("#' @longtests expect_true(a())", "a <- function() TRUE"), file.path(pkg, "R/a.R"))
   ordinary <- file.path(pkg, "tests/testthat/test-roxytest-tests-retain.R")
   writeLines(roxytest_header, ordinary)
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
   relative <- "longtests/testthat/test-biocroxytest-longtests-a.R"
   path <- file.path(pkg, relative)
   original <- rawToChar(generated_test_bytes(path))
   lf <- gsub("\r\n", "\n", original, fixed = TRUE)
   converted <- if (identical(original, lf)) gsub("\n", "\r\n", lf, fixed = TRUE) else lf
   writeBin(charToRaw(converted), path)
-  expect_true(check_generated_tests(pkg))
+  expect_true(check_generated_fixture(pkg))
   expect_identical(readLines(ordinary), roxytest_header)
   expect_identical(generated_test_bytes(path), charToRaw(converted))
 
@@ -133,7 +133,7 @@ test_that("freshness normalizes line endings and detects other byte differences"
   with_bom <- c(as.raw(c(0xef, 0xbb, 0xbf)), charToRaw(lf))
   for (bytes in list(without_final_newline, with_bom)) {
     writeBin(bytes, path)
-    stale <- expect_error(check_generated_tests(pkg), class = "biocroxytest_stale_tests")
+    stale <- expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
     expect_identical(stale$changes$status, "changed")
     expect_identical(stale$changes$path, relative)
     expect_identical(generated_test_bytes(path), bytes)
@@ -154,7 +154,7 @@ test_that("the inventory and checker do not follow linked test files", {
 
   expect_true(file.exists(linked))
   expect_equal(nrow(generated_test_inventory(pkg)), 0L)
-  expect_error(check_generated_tests(pkg), class = "biocroxytest_test_check_input")
+  expect_error(check_generated_fixture(pkg), class = "biocroxytest_test_check_input")
   expect_identical(readLines(target), generated_test_header)
 })
 
@@ -175,14 +175,14 @@ test_that("the inventory and checker do not follow linked test directories", {
 
   expect_true(file.exists(file.path(linked, filename)))
   expect_equal(nrow(generated_test_inventory(pkg)), 0L)
-  expect_error(check_generated_tests(pkg), class = "biocroxytest_test_check_input")
+  expect_error(check_generated_fixture(pkg), class = "biocroxytest_test_check_input")
   expect_identical(readLines(file.path(target, filename)), generated_test_header)
 })
 
 test_that("freshness requires a configured biocroxytest roclet", {
   pkg <- new_generated_test_fixture(roclets = '"rd"')
   on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
-  expect_error(check_generated_tests(pkg), class = "biocroxytest_test_check_input")
+  expect_error(check_generated_fixture(pkg), class = "biocroxytest_test_check_input")
 })
 
 test_that("regeneration failures retain their cause and leave the source untouched", {
@@ -191,8 +191,24 @@ test_that("regeneration failures retain their cause and leave the source untouch
   writeLines(c("#' @tests expect_true(", "a <- function() TRUE"), file.path(pkg, "R/a.R"))
   before <- generated_test_fixture_state(pkg)
 
-  failure <- expect_error(check_generated_tests(pkg), class = "biocroxytest_test_regeneration_error")
+  output <- capture_output({
+    failure <- expect_error(check_generated_tests(pkg), class = "biocroxytest_test_regeneration_error")
+  })
+  expect_match(output, "Invalid generated tests for .*a[.]R")
   expect_s3_class(failure$parent, "error")
   expect_match(conditionMessage(failure$parent), "Invalid generated tests for .*a[.]R")
   expect_identical(generated_test_fixture_state(pkg), before)
+})
+
+test_that("fixture regeneration keeps unexpected output visible", {
+  pkg <- new_generated_test_fixture()
+  on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
+  source <- file.path(pkg, "R", "a.R")
+  writeLines(c("#' @tests expect_true(a())", "a <- function() TRUE"), source)
+  roxygenise_fixture(pkg)
+
+  cat("\nwarning('deliberate regeneration warning')\n", file = source, append = TRUE)
+  output <- capture_output(check_generated_fixture(pkg))
+
+  expect_match(output, "deliberate regeneration warning")
 })
