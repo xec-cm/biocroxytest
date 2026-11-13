@@ -1,3 +1,9 @@
+# biocroxytest (development version)
+
+* Generate a separate test for every `@longtests` tag, keeping tests with their
+  source files even when they share an `@rdname`. Preserve multiline literals
+  and generate valid test titles for S4 methods and non-syntactic names (#2).
+
 # biocroxytest 0.99.3
 
 

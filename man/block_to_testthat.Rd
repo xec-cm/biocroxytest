@@ -19,8 +19,7 @@ file. It first checks if the block has any 'longtests' tags. If not, it
 returns NULL. Then, it extracts the 'longtests' and 'examples' tags from the
 block and assigns them to the 'longtests' and 'examples' fields of the
 testthat file, respectively. It also assigns the basename of the block's file
-to the 'filename' field, and the alias of the block's object to the
-'functionname' field. If the block's line is not NULL, it appends it to the
-'functionname' field.
+to the 'filename' field and builds a test title from the object's alias or
+S4 method topic and its source line.
 }
 \keyword{internal}

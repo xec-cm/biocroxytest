@@ -16,11 +16,7 @@ A list with a single element 'longtests', which contains the
 processed test files.
 }
 \description{
-This is an internal function that processes a list of blocks for the
-'longtests' roclet. It first collects and annotates the 'rdname' of the
-blocks. Then, it loops over each block and converts it to a testthat file
-using the 'block_to_testthat' function. If the resulting testthat file has a
-filename and contains 'longtests', it is added to the list of test files.
-Finally, it processes the test files using the 'process_testfiles' function.
+Convert each roxygen block independently and group the tests by source file.
+A shared documentation topic does not change the tests' source.
 }
 \keyword{internal}
