@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Pilot `reduce_paired_failure()` for finding a smaller SummarizedExperiment
+  that retains whole pairs, an estimable design and a specific failure (#15).
+
 * Export a failed named case and replay it with the recorded R seed, source
   revision and verified fixture identities (#14).
 

@@ -106,9 +106,9 @@ replay_test_case <- function(file, path = ".", download_fixtures = FALSE, fixtur
   result
 }
 
-valid_replay_seed <- function(seed) {
-  is.numeric(seed) && length(seed) == 1L && is.finite(seed) &&
-    abs(seed) <= .Machine$integer.max && seed == trunc(seed)
+valid_scalar_integer <- function(value) {
+  is.numeric(value) && length(value) == 1L && is.null(dim(value)) &&
+    is.finite(value) && abs(value) <= .Machine$integer.max && value == trunc(value)
 }
 
 verify_replay_revision <- function(path, replay) {
@@ -141,7 +141,7 @@ validate_replay_record <- function(record) {
       !is.character(record$revision) || length(record$revision) != 1L ||
       is.na(record$revision) || !grepl("^[a-f0-9]{32}$", record$revision) ||
       !valid_replay_environment(record$environment) || !is.list(record$context) ||
-      !valid_replay_seed(record$context$seed) ||
+      !valid_scalar_integer(record$context$seed) ||
       !identical(record$context$rng, c("Mersenne-Twister", "Inversion", "Rejection")) ||
       !is.character(record$context$settings) ||
       !identical(names(record$context$settings), c("CI", "NOT_CRAN", "TZ")) ||
