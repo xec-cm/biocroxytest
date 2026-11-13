@@ -66,13 +66,12 @@ Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::longtests_roclet"))
 
 **2 - Run the `biocroxytest::use_longtests()` function:** 
 
-This function sets up the overall infrastructure for long tests. When run, it 
-creates the `longtests/testthat` directory and the `longtests/testthat.R` file, 
-which are necessary for storing and running your long tests. Additionally, it
-generates a file named `.BBSoptions` that contains the `RunLongTests: TRUE` 
-parameter, indicating that long tests should be run on the Bioconductor server.
+From the package root, run this function to create `longtests/testthat` and
+enable `RunLongTests` in `.BBSoptions`. It keeps an existing
+`longtests/testthat.R`. On first setup it copies `tests/testthat.R` when
+available or creates a runner for the package named in `DESCRIPTION`.
 
-```{r}
+```{r, eval = FALSE}
 # Create the longtests directory and .BBSoptions file
 biocroxytest::use_longtests()
 ```
