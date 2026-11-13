@@ -112,11 +112,11 @@ test_that("opt-in downloads cache verified bytes and can retry after a mismatch"
   ))
   on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
 
-  contents <- "wrong bytes"
+  contents <- charToRaw("wrong bytes\n")
   testthat::local_mocked_bindings(
     download.file = function(url, destfile, mode, quiet) {
       expect_identical(mode, "wb")
-      writeLines(contents, destfile)
+      writeBin(contents, destfile)
       0L
     },
     .package = "utils"
@@ -126,8 +126,10 @@ test_that("opt-in downloads cache verified bytes and can retry after a mismatch"
   bfc <- BiocFileCache::BiocFileCache(cache, ask = FALSE)
   expect_identical(nrow(BiocFileCache::bfcinfo(bfc)), 0L)
 
-  contents <- "verified download"
+  contents <- readBin(fixture, "raw", n = file.size(fixture))
   verified <- run_test_plan(pkg, download_fixtures = TRUE, fixture_cache = cache)
+  fixture_report <- verified$fixtures[["inputs/sample"]]
+  expect_identical(fixture_report$status, "verified", info = fixture_report$detail)
   expect_identical(verified$cases$status, "completed")
   expect_identical(nrow(BiocFileCache::bfcinfo(bfc)), 1L)
   expect_identical(run_test_plan(pkg, fixture_cache = cache)$cases$status, "completed")
