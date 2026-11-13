@@ -24,7 +24,8 @@ Imports:
     callr,
     cli,
     fs,
-    roxygen2
+    roxygen2,
+    withr
 Suggests: 
     BiocFileCache,
     BiocStyle,
@@ -36,8 +37,7 @@ Suggests:
     rmarkdown,
     roxytest,
     SummarizedExperiment,
-    testthat (>= 3.3.0),
-    withr
+    testthat (>= 3.3.0)
 Depends: R (>= 4.4.0)
 Config/testthat/edition: 3
 Config/testthat/parallel: false

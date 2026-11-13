@@ -27,6 +27,8 @@
 #'   a verified copy is unavailable in the cache. Defaults to `FALSE`.
 #' @param fixture_cache BiocFileCache directory. `NULL` uses the package's
 #'   user cache directory, `tools::R_user_dir("biocroxytest", "cache")`.
+#' @param seed An optional integer seed used independently for each selected
+#'   case. With `NULL`, each case gets a seed in its own R process.
 #' @return A list with `revision`, a content fingerprint, `cases`, a data
 #'   frame containing the selected case IDs, suites, paths, statuses,
 #'   durations in seconds and diagnostics, and `environments`, the R
@@ -36,6 +38,9 @@
 #'   `fixtures` contains the preflight fixture sources, expected and observed
 #'   checksums, availability and diagnostics, keyed by case ID. A case with
 #'   an unavailable required fixture is `incomplete` and does not start.
+#'   `replay` holds the seed, RNG kind and selected environment settings for
+#'   executed cases, keyed by case ID. Use \link[=write_test_replay]{write_test_replay()}
+#'   to export a failure.
 #' @export
 #' @examples
 #' pkg <- tempfile("test-plan-example-")
@@ -43,14 +48,35 @@
 #' writeLines("Package: examplepkg", file.path(pkg, "DESCRIPTION"))
 #' run_test_plan(pkg)
 #' unlink(pkg, recursive = TRUE)
-run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE, fixture_cache = NULL) {
+run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE,
+                          fixture_cache = NULL, seed = NULL) {
+  if (!is.null(seed) && !valid_replay_seed(seed)) {
+    cli::cli_abort("{.arg seed} must be one integer.", call = NULL)
+  }
+  run_case_evidence(path, ids, download_fixtures, fixture_cache, seed)
+}
+
+run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
+                              seed, replay = NULL) {
   validate_fixture_run_options(download_fixtures, fixture_cache)
   path <- test_package_path(path)
   snapshot <- test_package_copy_path(path)
   on.exit(unlink(snapshot, recursive = TRUE, expand = FALSE), add = TRUE)
   copy_test_package(path, snapshot)
 
+  revision <- if (is.null(replay)) NULL else verify_replay_revision(snapshot, replay)
   plan <- test_case_plan(snapshot)
+  fields <- c("id", "suite", "source", "path")
+  if (!is.null(replay)) {
+    recorded <- replay$case[fields]
+    current <- plan[plan$id == replay$case$id, fields, drop = FALSE]
+    if (nrow(current) != 1L || !identical(as.list(recorded), as.list(current))) {
+      cli::cli_abort(
+        "Named case differs from the replay record.",
+        class = "biocroxytest_invalid_replay", call = NULL
+      )
+    }
+  }
   if (!is.null(ids)) {
     if (!is.character(ids) || anyNA(ids) || anyDuplicated(ids)) {
       cli::cli_abort("{.arg ids} must contain unique case IDs.", call = NULL)
@@ -65,19 +91,24 @@ run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE, fix
     fixture_cache <- resolve_fixture_cache(fixture_cache, path)
   }
 
-  revision <- test_plan_revision(snapshot)
-  cases_df <- plan[c("id", "suite", "source", "path")]
+  if (is.null(revision)) {
+    revision <- test_plan_revision(snapshot)
+  }
+  cases_df <- plan[fields]
   cases_df$status <- rep("missing", nrow(cases_df))
   cases_df$duration <- rep(NA_real_, nrow(cases_df))
   cases_df$detail <- rep("", nrow(cases_df))
   environments <- list()
   fixtures <- list()
+  replay_context <- list()
 
   if (nrow(plan)) {
     require_case_testthat()
   }
   for (i in seq_len(nrow(plan))) {
-    evidence <- record_test_case(snapshot, plan[i, ], download_fixtures, fixture_cache)
+    evidence <- record_test_case(
+      snapshot, plan[i, ], download_fixtures, fixture_cache, seed, replay
+    )
     cases_df$status[i] <- evidence$status
     cases_df$duration[i] <- evidence$duration
     cases_df$detail[i] <- evidence$detail
@@ -87,10 +118,16 @@ run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE, fix
     if (NROW(evidence$fixtures)) {
       fixtures[[cases_df$id[i]]] <- evidence$fixtures
     }
+    if (!is.null(evidence$replay)) {
+      replay_context[[cases_df$id[i]]] <- evidence$replay
+    }
   }
 
   rownames(cases_df) <- NULL
-  list(revision = revision, cases = cases_df, environments = environments, fixtures = fixtures)
+  list(
+    revision = revision, cases = cases_df, environments = environments,
+    fixtures = fixtures, replay = replay_context
+  )
 }
 
 test_plan_revision <- function(path) {
@@ -111,7 +148,7 @@ test_plan_revision <- function(path) {
   unname(tools::md5sum(manifest_file))
 }
 
-record_test_case <- function(snapshot, case, download_fixtures, fixture_cache) {
+record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, seed, replay) {
   file <- file.path(snapshot, case$path)
   if (!file.exists(file)) {
     return(list(status = "missing", duration = NA_real_, detail = "Generated file is absent."))
@@ -128,6 +165,11 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache) {
   on.exit(unlink(staging, recursive = TRUE), add = TRUE)
   fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
   fixture_evidence <- fixtures[, names(fixtures) != "path"]
+  if (!is.null(replay) && !same_replay_fixtures(fixture_evidence, replay$fixtures)) {
+    return(list(status = "incomplete", duration = NA_real_,
+                detail = "Fixture availability or checksum differs from the replay record.",
+                fixtures = fixture_evidence))
+  }
   if (any(fixtures$required & fixtures$status != "verified")) {
     return(list(status = "incomplete", duration = NA_real_,
                 detail = fixture_diagnostics(fixtures), fixtures = fixture_evidence))
@@ -141,11 +183,12 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache) {
       args = list(
         path = copy, file = file, description = case$description,
         code = case$code, location = location, checksum = unname(tools::md5sum(file)),
-        paths = fixture_paths(fixtures)
+        paths = fixture_paths(fixtures), seed = seed
       ),
       user_profile = FALSE,
       system_profile = FALSE,
-      error = "error"
+      error = "error",
+      env = c(callr::rcmd_safe_env(), replay$context$settings)
     ),
     error = function(error) list(problem = conditionMessage(error))
   )
@@ -163,8 +206,18 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache) {
   run
 }
 
-execute_evidence_case <- function(path, file, description, code, location, checksum, paths) {
+execute_evidence_case <- function(path, file, description, code, location, checksum,
+                                  paths, seed) {
   setwd(path)
+  settings <- Sys.getenv(c("CI", "NOT_CRAN", "TZ"), unset = NA_character_)
+  if (is.null(seed)) {
+    seed <- sample.int(.Machine$integer.max, 1L)
+  }
+  rng <- c("Mersenne-Twister", "Inversion", "Rejection")
+  withr::local_seed(
+    seed, .rng_kind = rng[1L], .rng_normal_kind = rng[2L], .rng_sample_kind = rng[3L]
+  )
+
   state <- new.env(parent = emptyenv())
   state$finished <- FALSE
   state$skipped <- FALSE
@@ -248,8 +301,9 @@ execute_evidence_case <- function(path, file, description, code, location, check
   }), error = conditionMessage, skip = conditionMessage)
 
   expectations <- reporter$expectations()
+  broken <- vapply(expectations, inherits, logical(1), c("expectation_failure", "expectation_error"))
   passed <- any(vapply(expectations, inherits, logical(1), "expectation_success"))
-  failed <- any(vapply(expectations, inherits, logical(1), c("expectation_failure", "expectation_error")))
+  failed <- any(broken)
   skipped <- any(vapply(expectations, inherits, logical(1), "expectation_skip"))
   diagnostics <- Filter(function(cnd) !inherits(cnd, "expectation_success"), expectations)
   messages <- c(problem, state$suite_warnings, vapply(diagnostics, conditionMessage, character(1)))
@@ -286,6 +340,34 @@ execute_evidence_case <- function(path, file, description, code, location, check
       as.character(getNamespaceVersion(package))
     }, character(1)), packages)
   )
-  list(status = status, duration = if (is.null(problem)) state$duration else NA_real_,
-       detail = detail, environment = environment)
+  failures <- vapply(expectations[broken], function(cnd) {
+    refs <- c(list(cnd$srcref), lapply(cnd$trace$call, attr, which = "srcref", exact = TRUE))
+    locations <- vapply(refs, function(ref) {
+      if (!inherits(ref, "srcref")) {
+        return("")
+      }
+      source <- attr(ref, "srcfile")$filename
+      paste0(source, ":", paste(as.integer(ref)[c(1L, 5L, 3L, 6L)], collapse = ":"))
+    }, character(1))
+    paste(c(class(cnd)[1L], cnd$test, conditionMessage(cnd), locations[nzchar(locations)]), collapse = "\n")
+  }, character(1))
+  # Remove paths unique to this process before comparing failure diagnostics.
+  available <- paths[!is.na(paths)]
+  replace <- c(
+    stats::setNames(paste0("<fixture:", names(available), ">", recycle0 = TRUE), available),
+    stats::setNames(rep("<temporary>", 2L), c(path, tempdir()))
+  )
+  for (file in names(replace)) {
+    spellings <- unique(c(file, normalizePath(file, winslash = "/", mustWork = FALSE)))
+    for (spelling in spellings) {
+      detail <- gsub(spelling, replace[[file]], detail, fixed = TRUE)
+      failures <- gsub(spelling, replace[[file]], failures, fixed = TRUE)
+    }
+  }
+
+  list(
+    status = status, duration = if (is.null(problem)) state$duration else NA_real_,
+    detail = detail, environment = environment,
+    replay = list(seed = as.integer(seed), rng = rng, settings = settings, failures = failures)
+  )
 }

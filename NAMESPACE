@@ -14,11 +14,13 @@ export(check_generated_tests)
 export(compare_test_plans)
 export(generated_test_inventory)
 export(longtests_roclet)
+export(replay_test_case)
 export(run_test_case)
 export(run_test_plan)
 export(test_case_plan)
 export(tests_roclet)
 export(use_longtests)
+export(write_test_replay)
 importFrom(roxygen2,
   roclet_clean,
   roclet_output,
