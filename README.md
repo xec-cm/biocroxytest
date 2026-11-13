@@ -232,6 +232,30 @@ each check. A missing or changed required fixture blocks the case. With
 an `NA` path. Standard testthat runs verify local files and skip cases
 that require a remote fixture.
 
+## Reduce a paired failure
+
+Use `reduce_paired_failure()` to find a smaller SummarizedExperiment for
+an ordinary regression test. The pilot supports two conditions, one
+sample per condition and pair, and an additive design with the pair and
+condition as main effects.
+
+``` r
+reduced <- biocroxytest::reduce_paired_failure(
+  x, pair = "subject", condition = "visit", design = ~ subject + visit,
+  check = check_known_failure
+)
+dim(reduced$data)
+reduced$failure
+```
+
+Implement `check_known_failure()` to run the failing operation and
+return a stable identifier for the specific failure, or `NULL` if it is
+absent. The reducer checks the original data, tries smaller subsets of
+features and complete pairs, and checks the final subset again. It
+preserves a full-rank design with residual degrees of freedom. Review
+the subset and use it in an ordinary test of the expected correct
+behavior.
+
 ## Check generated tests in CI
 
 List the generated files, their source files, and their suites with

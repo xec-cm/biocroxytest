@@ -50,7 +50,7 @@
 #' unlink(pkg, recursive = TRUE)
 run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE,
                           fixture_cache = NULL, seed = NULL) {
-  if (!is.null(seed) && !valid_replay_seed(seed)) {
+  if (!is.null(seed) && !valid_scalar_integer(seed)) {
     cli::cli_abort("{.arg seed} must be one integer.", call = NULL)
   }
   run_case_evidence(path, ids, download_fixtures, fixture_cache, seed)

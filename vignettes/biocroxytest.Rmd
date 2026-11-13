@@ -197,6 +197,13 @@ restores the initial R seed and reports whether the failure matched.
 Set any backend-specific seeds, such as BiocParallel RNG seeds, in the
 case setup when those streams matter.
 
+For a paired SummarizedExperiment, use `reduce_paired_failure()` to pilot a
+smaller regression fixture. Supply the pair and condition columns, an
+additive design and a checker that identifies the target failure. The
+reducer removes rows and whole pairs, tests only estimable designs and
+verifies the final subset before returning it. Review any constraints
+specific to the study before using the result in an ordinary test.
+
 Pin a named case's input files in its `fixtures` list. Each named fixture
 declares a suite-relative file path or HTTPS `source` and an `md5` checksum.
 Access verified paths with `fixture_paths[["name"]]` in the setup or test.
