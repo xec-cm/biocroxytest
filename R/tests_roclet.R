@@ -92,15 +92,18 @@ check_test_roclets <- function(resolved) {
                 "roxygen2::namespace_roclet", "roxygen2::vignette_roclet",
                 "biocroxytest::tests_roclet")
       if (any(!names %in% safe)) {
-        stop("Use clean = FALSE with custom roclets. biocroxytest removes ",
-             "obsolete generated tests after validation.", call. = FALSE)
+        cli::cli_abort(c(
+          "Use {.code clean = FALSE} with custom roclets.",
+          i = "biocroxytest removes obsolete generated tests after validation."
+        ), call = NULL)
       }
     }
   }
   if (conflict) {
-    stop("Use biocroxytest::tests_roclet alone for ordinary and long tests. ",
-         "Remove roxytest::testthat_roclet and biocroxytest::longtests_roclet ",
-         "from the same roxygen run.", call. = FALSE)
+    cli::cli_abort(c(
+      "Use {.code biocroxytest::tests_roclet} alone for ordinary and long tests.",
+      i = "Remove {.code roxytest::testthat_roclet} and {.code biocroxytest::longtests_roclet} from the same roxygen run."
+    ), call = NULL)
   }
   invisible(NULL)
 }

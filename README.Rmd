@@ -121,6 +121,23 @@ generated files.
 Packages using roxytest's `@testexamples` can keep its roclet alongside
 `longtests_roclet` until those tests have been migrated.
 
+## Check generated tests in CI
+
+List the generated files, their source files, and their suites with
+`biocroxytest::generated_test_inventory()`. To check that those files
+match the source, run this after installing the package's development
+dependencies:
+
+```sh
+Rscript --vanilla -e 'biocroxytest::check_generated_tests()'
+```
+
+Run the command from the consumer package root, or pass its path to the
+function. The check uses the configured biocroxytest roclet in a temporary
+copy. It exits with an error if generated files are missing, changed, or
+obsolete. Regenerate with `roxygen2::roxygenise()` and commit the resulting
+changes. Manual tests and snapshots are excluded from the comparison.
+
 ## Contributing
 
 - If you think you have encountered a bug, please [submit an issue](https://github.com/xec-cm/biocroxytest/issues).

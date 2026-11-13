@@ -21,8 +21,9 @@ URL: https://github.com/xec-cm/biocroxytest,
 BugReports: https://github.com/xec-cm/biocroxytest/issues
 biocViews: Software, Infrastructure
 Imports: 
+    callr,
     cli,
-    glue,
+    fs,
     roxygen2
 Suggests: 
     BiocStyle,

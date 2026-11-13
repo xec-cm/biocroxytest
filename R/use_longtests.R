@@ -21,14 +21,15 @@
 #' })
 use_longtests <- function() {
   if (!file.exists("DESCRIPTION")) {
-    stop("Run use_longtests() from a package directory with a DESCRIPTION file.",
-         call. = FALSE)
+    cli::cli_abort("Run {.code use_longtests()} from a package directory with a {.file DESCRIPTION} file.",
+                   call = NULL)
   }
   description <- read.dcf("DESCRIPTION", fields = "Package")
   package <- description[, "Package"]
   if (length(package) != 1L || is.na(package) ||
       !grepl("^[A-Za-z][A-Za-z0-9.]+$", package) || endsWith(package, ".")) {
-    stop("DESCRIPTION must contain a valid Package field.", call. = FALSE)
+    cli::cli_abort("{.file DESCRIPTION} must contain a valid {.field Package} field.",
+                   call = NULL)
   }
 
   setup_longtests_runner(package)
@@ -39,13 +40,14 @@ use_longtests <- function() {
 setup_longtests_runner <- function(package) {
   path <- file.path("longtests", "testthat")
   if (!dir.exists(path) && !dir.create(path, recursive = TRUE)) {
-    stop("Could not create ", path, call. = FALSE)
+    cli::cli_abort("Could not create {.path {path}}.", call = NULL)
   }
 
   runner <- file.path("longtests", "testthat.R")
   if (file.exists(runner) || is_symlink(runner)) {
     if (!file.exists(runner) || dir.exists(runner) || file.access(runner, 4L) != 0L) {
-      stop("Cannot use the existing long test runner: ", runner, call. = FALSE)
+      cli::cli_abort("Cannot use the existing long test runner: {.file {runner}}.",
+                     call = NULL)
     }
     return(invisible(NULL))
   }
@@ -56,7 +58,7 @@ setup_longtests_runner <- function(package) {
   if (file.exists(ordinary) || is_symlink(ordinary)) {
     if (!file.exists(ordinary) || dir.exists(ordinary) ||
         file.access(ordinary, 4L) != 0L || !file.copy(ordinary, staged)) {
-      stop("Could not copy ", ordinary, " to ", runner, call. = FALSE)
+      cli::cli_abort("Could not copy {.file {ordinary}} to {.file {runner}}.", call = NULL)
     }
   } else {
     name <- encodeString(package, quote = '"')
@@ -69,9 +71,10 @@ setup_longtests_runner <- function(package) {
   }
 
   if (file.exists(runner) || is_symlink(runner) || !file.rename(staged, runner)) {
-    stop("Could not install the long test runner: ", runner, call. = FALSE)
+    cli::cli_abort("Could not install the long test runner: {.file {runner}}.",
+                   call = NULL)
   }
-  cli::cli_inform(c("v" = "Created {runner}."))
+  cli::cli_inform(c("v" = "Created {.file {runner}}."))
 }
 
 setup_bbs_options <- function() {
@@ -84,8 +87,8 @@ setup_bbs_options <- function() {
   )
   if (!bom && identical(lines, updated)) { return(invisible(NULL)) }
   if (is_symlink(path)) {
-    stop("Update RunLongTests in the linked .BBSoptions file directly.",
-         call. = FALSE)
+    cli::cli_abort("Update {.field RunLongTests} in the linked {.file .BBSoptions} file directly.",
+                   call = NULL)
   }
 
   # Stage alongside the destination so a write error leaves the original intact.
@@ -93,8 +96,10 @@ setup_bbs_options <- function() {
   on.exit(unlink(staged, expand = FALSE), add = TRUE)
   writeLines(updated, staged)
   if (file.exists(path)) { Sys.chmod(staged, file.info(path)$mode, use_umask = FALSE) }
-  if (!file.rename(staged, path)) { stop("Could not update ", path, call. = FALSE) }
-  cli::cli_inform(c("v" = "Enabled long tests in {path}."))
+  if (!file.rename(staged, path)) {
+    cli::cli_abort("Could not update {.file {path}}.", call = NULL)
+  }
+  cli::cli_inform(c("v" = "Enabled long tests in {.file {path}}."))
 }
 
 enable_longtests_option <- function(lines) {

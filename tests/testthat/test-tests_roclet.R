@@ -119,7 +119,7 @@ test_that("the suites cannot share one output directory", {
     expect_true(dir.exists("longtests/testthat"))
     writeLines(c("#' @tests expect_true(TRUE)", "#' @longtests expect_false(FALSE)",
                  "a <- function() TRUE"), "R/a.R")
-    expect_error(generate_test_suites(clean = TRUE), "separate testthat directories")
+    expect_error(generate_test_suites(clean = TRUE), "separate .*testthat.* directories")
     expect_length(list.files("tests/testthat"), 0L)
   })
 })
@@ -141,7 +141,7 @@ test_that("competing roclets are rejected before clean can delete tests", {
 
     dynamic <- 'getExportedValue("roxytest", "testthat_roclet")'
     for (roclets in list(c(unified, dynamic), c(dynamic, unified))) {
-      expect_error(generate_test_suites(roclets, clean = TRUE), "Use clean = FALSE")
+      expect_error(generate_test_suites(roclets, clean = TRUE), "Use .*clean = FALSE")
       expect_identical(readLines(path), roxytest_header)
       expect_error(generate_test_suites(roclets), "Use .* alone")
       expect_identical(readLines(path), roxytest_header)
@@ -151,7 +151,7 @@ test_that("competing roclets are rejected before clean can delete tests", {
     assign(alias, roxytest::testthat_roclet, envir = globalenv())
     on.exit(rm(list = alias, envir = globalenv()), add = TRUE)
     for (roclets in list(c(unified, alias), c(alias, unified))) {
-      expect_error(generate_test_suites(roclets, clean = TRUE), "Use clean = FALSE")
+      expect_error(generate_test_suites(roclets, clean = TRUE), "Use .*clean = FALSE")
       expect_identical(readLines(path), roxytest_header)
       expect_error(generate_test_suites(roclets), "Use .* alone")
       expect_identical(readLines(path), roxytest_header)

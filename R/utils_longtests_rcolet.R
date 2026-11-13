@@ -37,7 +37,7 @@ test_title <- function(block, suite) {
 process_test_suites <- function(blocks, suites) {
   for (block in blocks) {
     if (length(roxygen2::block_get_tags(block, "rdname")) > 1L) {
-      stop("Did not expect two @rdname's in a block", call. = FALSE)
+      cli::cli_abort("Did not expect two {.code @rdname} tags in a block.", call = NULL)
     }
   }
   stats::setNames(lapply(suites, function(suite) process_test_suite(blocks, suite)), suites)
@@ -76,19 +76,22 @@ plan_test_suite <- function(results, base_path, suite) {
   if (length(sources) != length(results) || anyNA(sources) ||
       any(!nzchar(sources)) || any(grepl("[/\\\\]", filenames)) ||
       any(!grepl("[.][Rr]$", filenames))) {
-    stop("Invalid generated test filename for ", suite, ".", call. = FALSE)
+    cli::cli_abort("Invalid generated test filename for {.code {suite}}.", call = NULL)
   }
 
   keys <- tolower(filenames)
   duplicate <- anyDuplicated(keys)
   if (duplicate) {
-    stop("Duplicate generated test destination: ", filenames[duplicate], call. = FALSE)
+    cli::cli_abort("Duplicate generated test destination: {.file {filenames[duplicate]}}.",
+                   call = NULL)
   }
 
   if (length(results) && !dir.exists(path)) {
     setup <- if (suite == "tests") "usethis::use_testthat()" else "biocroxytest::use_longtests()"
-    stop("Test output directory does not exist: ", path, ". Run ", setup, " first.",
-         call. = FALSE)
+    cli::cli_abort(c(
+      "Test output directory does not exist: {.path {path}}.",
+      i = "Run {.code {setup}} first."
+    ), call = NULL)
   }
 
   existing <- list.files(path, all.files = TRUE, no.. = TRUE)
@@ -99,13 +102,14 @@ plan_test_suite <- function(results, base_path, suite) {
     if (any(aliases != filenames[i]) ||
         ((file.exists(destination) || is_symlink(destination)) &&
          (!filenames[i] %in% existing || !made_by_biocroxytest(destination, suite)))) {
-      stop("Test destination collides with an existing file: ", destination, call. = FALSE)
+      cli::cli_abort("Test destination collides with an existing file: {.file {destination}}.",
+                     call = NULL)
     }
     tryCatch(
       parse(text = results[[i]], srcfile = srcfilecopy(filenames[i], results[[i]])),
       error = function(e) {
-        stop("Invalid generated ", suite, " for ", sources[i], ": ",
-             conditionMessage(e), call. = FALSE)
+        cli::cli_abort("Invalid generated {suite} for {.file {sources[i]}}.",
+                       parent = e, call = NULL)
       }
     )
   }
@@ -119,18 +123,19 @@ plan_test_suite <- function(results, base_path, suite) {
 stage_test_suite <- function(plan, stage) {
   # Use the real basenames to catch aliases and invalid names on this volume.
   if (!dir.create(stage, mode = "0700")) {
-    stop("Could not stage generated tests in ", plan$path, call. = FALSE)
+    cli::cli_abort("Could not stage generated tests in {.path {plan$path}}.", call = NULL)
   }
   staged <- file.path(stage, plan$filenames)
   for (i in seq_along(staged)) {
     if (file.exists(staged[i])) {
-      stop("Duplicate generated test destination: ", plan$filenames[i], call. = FALSE)
+      cli::cli_abort("Duplicate generated test destination: {.file {plan$filenames[i]}}.",
+                     call = NULL)
     }
     tryCatch(
       writeLines(enc2utf8(plan$results[[i]]), staged[i], useBytes = TRUE),
       error = function(e) {
-        stop("Could not stage generated test: ", plan$filenames[i], ": ",
-             conditionMessage(e), call. = FALSE)
+        cli::cli_abort("Could not stage generated test: {.file {plan$filenames[i]}}.",
+                       parent = e, call = NULL)
       }
     )
   }
@@ -140,7 +145,8 @@ stage_test_suite <- function(plan, stage) {
 write_test_suites <- function(results, base_path) {
   paths <- file.path(base_path, names(results), "testthat")
   if (anyDuplicated(normalizePath(paths[dir.exists(paths)]))) {
-    stop("Ordinary and long tests need separate testthat directories.", call. = FALSE)
+    cli::cli_abort("Ordinary and long tests need separate {.path testthat} directories.",
+                   call = NULL)
   }
   plans <- Map(plan_test_suite, results, suite = names(results),
                MoreArgs = list(base_path = base_path))
@@ -157,14 +163,18 @@ write_test_suites <- function(results, base_path) {
   for (plan in plans) {
     for (i in seq_along(plan$destinations)) {
       if (!file.rename(plan$staged[i], plan$destinations[i])) {
-        stop("Could not update generated test: ", plan$destinations[i], call. = FALSE)
+        cli::cli_abort("Could not update generated test: {.file {plan$destinations[i]}}.",
+                       call = NULL)
       }
     }
   }
   for (plan in plans) {
     if (length(plan$obsolete) && unlink(plan$obsolete, expand = FALSE) != 0L) {
-      stop("Could not remove obsolete generated tests in ", plan$path, call. = FALSE)
+      cli::cli_abort("Could not remove obsolete generated tests in {.path {plan$path}}.",
+                     call = NULL)
     }
   }
+  record_suites <- getOption("biocroxytest.record_test_suites")
+  if (is.function(record_suites)) { record_suites(names(results)) }
   unlist(lapply(results, names), use.names = FALSE)
 }

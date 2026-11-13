@@ -11,11 +11,9 @@
 verify_longtests_used <- function(base_path = ".") {
   if (!dir.exists(file.path(base_path, "longtests"))) {
     cli::cli_abort(c(
-      "longtests is not currenlty used in this package.",
-      "*" = glue::glue(
-        "Please set it up by {cli::col_blue('biocroxytest::use_longtests()')}"
-      )
-    ))
+      "The package has no {.path longtests} directory.",
+      i = "Set it up with {.code biocroxytest::use_longtests()}."
+    ), call = NULL)
   }
   TRUE
 }
