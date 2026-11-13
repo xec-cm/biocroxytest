@@ -14,6 +14,7 @@ Add \code{"biocroxytest::tests_roclet"} to the roxygen roclets in DESCRIPTION.
 Write test bodies in \verb{@tests} for ordinary tests or \verb{@longtests} for
 Bioconductor long tests. Each tag becomes a separate testthat test. Use
 \code{usethis::use_testthat()} and \code{\link[=use_longtests]{use_longtests()}} to set up the suites you use.
+Use \verb{@testCases} to share a test body across named cases. See \code{\link[=test_case_plan]{test_case_plan()}}.
 }
 \details{
 To migrate \verb{@tests} from roxytest, replace its testthat roclet with this

@@ -159,6 +159,20 @@ testthat::test_that("Function foo() @ L11", {
 This file contains the long tests for the `foo()` function, ready to be run by 
 `r BiocStyle::Githubpkg("r-lib/testthat")`.
 
+## Named test cases
+
+Use `@testCases group-name` with `tests_roclet()` to share expectations
+across ordinary and long tests. Supply a literal list with named `cases`
+and a shared `test = {...}` block. Each case selects `"tests"` or
+`"longtests"` and can provide `setup = {...}`. Testthat runs setup and the
+shared body together. Keep fixture creation, including writes to HDF5,
+inside the case setup, and arrange cleanup when creating temporary files.
+
+Use `test_case_plan()` to inspect the cases and their paths. After generating
+the test files, `run_test_case("group-name/case-name")` runs one case.
+`compare_test_plans(before, after)` reports additions, removals, suite
+moves, and changes to the expectations or setup for the same ID.
+
 ## Check generated test files
 
 `biocroxytest::generated_test_inventory()` lists the source, output path,

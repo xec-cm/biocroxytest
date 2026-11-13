@@ -1,5 +1,11 @@
 # biocroxytest (development version)
 
+* Add `@testCases` for named cases that share expectations, with a plan and
+  local selection by stable ID. Exercise S4 sample alignment in memory and
+  on HDF5 (#8, #9).
+* Add `compare_test_plans()` to detect additions, removals, suite moves,
+  and content changes by case ID (#10).
+
 * Add `generated_test_inventory()` and `check_generated_tests()`. The
   CI check reports missing, changed, and obsolete generated tests after
   regenerating in a temporary copy (#7).

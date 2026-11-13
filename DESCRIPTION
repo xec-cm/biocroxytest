@@ -27,11 +27,15 @@ Imports:
     roxygen2
 Suggests: 
     BiocStyle,
+    DelayedArray,
+    HDF5Array,
     here,
     knitr,
     rmarkdown,
     roxytest,
-    testthat (>= 3.0.0)
+    SummarizedExperiment,
+    testthat (>= 3.3.0),
+    withr
 Depends: R (>= 4.4.0)
 Config/testthat/edition: 3
 Config/testthat/parallel: false
