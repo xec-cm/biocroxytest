@@ -65,7 +65,7 @@ test_that("unified validation precedes replacement or cleanup in either suite", 
     for (path in old[1:2]) { writeLines(before, path) }
     writeLines(c(generated_test_header, "# long test"), old[3])
     writeLines("# manual test", manual[1])
-    writeLines(roxytest_header, manual[2])
+    writeLines("# Manual example test", manual[2])
     dir.create("tests/testthat/_snaps")
     writeLines("Snapshot", "tests/testthat/_snaps/roxytest-tests-a.md")
     files <- c(old, manual, "tests/testthat/_snaps/roxytest-tests-a.md")

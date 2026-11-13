@@ -5,8 +5,9 @@
 #' Bioconductor long tests. Each tag becomes a separate testthat test. Use
 #' `usethis::use_testthat()` and [use_longtests()] to set up the suites you use.
 #' Use `@testCases` to share a test body across named cases. See [test_case_plan()].
+#' Use `@testexamples` to run documented examples before testing their results.
 #'
-#' To migrate `@tests` from roxytest, replace its testthat roclet with this
+#' To migrate `@tests` or `@testexamples` from roxytest, replace its testthat roclet with this
 #' roclet. It retains the roxytest filename prefix and updates ownership
 #' headers. Tests in shared `@rdname` topics follow their original source files,
 #' so review any changed test names and snapshot paths after regenerating.
@@ -22,7 +23,8 @@
 #' tests_roclet()
 tests_roclet <- function() {
   check_test_roclets(resolved = FALSE)
-  ensure_tests_tag_parser()
+  ensure_test_tag_parser("roxy_tag_tests", roxy_tag_parse.roxy_tag_tests)
+  ensure_test_tag_parser("roxy_tag_testexamples", roxy_tag_parse.roxy_tag_testexamples)
   roxygen2::roclet("biocroxytest_tests")
 }
 
@@ -37,13 +39,12 @@ roxy_tag_parse.roxy_tag_tests <- function(x) {
   x
 }
 
-ensure_tests_tag_parser <- function() {
+ensure_test_tag_parser <- function(class, parser) {
   # pkgload can remove the shared entry when unloading roxytest. Look at the
   # generic's registration table, since the method is still visible here.
   registry <- get(".__S3MethodsTable__.", asNamespace("roxygen2"), inherits = FALSE)
-  if (!exists("roxy_tag_parse.roxy_tag_tests", envir = registry, inherits = FALSE)) {
-    registerS3method("roxy_tag_parse", "roxy_tag_tests",
-                     roxy_tag_parse.roxy_tag_tests, envir = environment())
+  if (!exists(paste0("roxy_tag_parse.", class), envir = registry, inherits = FALSE)) {
+    registerS3method("roxy_tag_parse", class, parser, envir = environment())
   }
 }
 
@@ -52,7 +53,9 @@ ensure_tests_tag_parser <- function() {
 roclet_process.roclet_biocroxytest_tests <- function(x, blocks, env, base_path) {
   check_test_roclets(resolved = TRUE)
   cases <- collect_test_cases(blocks, check_origin = TRUE)
-  process_test_suites(blocks, c("tests", "longtests"), cases)
+  results <- process_test_suites(blocks, c("tests", "longtests"), cases)
+  results$testexamples <- process_test_examples(blocks, env, base_path)
+  results
 }
 
 #' @importFrom roxygen2 roclet_output

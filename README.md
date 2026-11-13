@@ -101,18 +101,42 @@ Preview the migration in a clean branch or disposable copy. Replace
 `roxytest::testthat_roclet` and, if present,
 `biocroxytest::longtests_roclet` with `biocroxytest::tests_roclet`.
 Regenerate and inspect the diff, then run your test suites. The
-generator retains the `test-roxytest-tests-` prefix and updates the
-ownership header. Use the default `clean = FALSE` with custom roclets.
-The unified roclet cleans up obsolete generated tests after validating
-both suites on every run.
+generator retains the `test-roxytest-tests-` and
+`test-roxytest-testexamples-` prefixes and updates the ownership header.
+Use the default `clean = FALSE` with custom roclets. The unified roclet
+cleans up obsolete generated tests after validating both suites on every
+run.
 
 For shared `@rdname` topics, each tag follows its own source file. If
 roxytest previously merged those blocks, a test can move or change
 description. Review and migrate any affected snapshots before adopting
 the generated files. To revert a migration, restore both the previous
-configuration and its generated files. Packages using roxytest’s
-`@testexamples` can keep its roclet alongside `longtests_roclet` until
-those tests have been migrated.
+configuration and its generated files.
+
+## Test documented examples
+
+Add `@testexamples` with the assertions to run after the examples on the
+same topic. Each tag produces an ordinary test with its own example
+variables.
+
+``` r
+#' Increment an integer
+#' @examples
+#' value <- increment(2L)
+#' @testexamples
+#' expect_identical(value, 3L)
+increment <- function(x) x + 1L
+```
+
+The roclet runs `@examples` and `@example` in roxygen’s block order,
+including direct examples from blocks that contribute to the same Rd
+topic. R’s Rd rules omit `\dontrun{}` and execute `\dontshow{}` and
+`\donttest{}`. Use `@examplesIf` for examples that depend on an optional
+resource. Its condition is evaluated during the test, after the
+preceding examples. If it is false, testthat skips that test and its
+assertions. Rd platform directives are resolved on the machine
+generating the tests. This workflow uses direct examples. It excludes
+inherited examples and templates, and rejects Rd `\Sexpr{}` expressions.
 
 ## Share a test across named cases
 

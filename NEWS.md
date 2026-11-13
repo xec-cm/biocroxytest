@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Support `@testexamples` in the unified roclet. Run documented examples
+  before their assertions with Rd execution rules and runtime conditions (#11).
+
 * Add `@testCases` for named cases that share expectations, with a plan and
   local selection by stable ID. Exercise S4 sample alignment in memory and
   on HDF5 (#8, #9).

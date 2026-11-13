@@ -16,16 +16,17 @@ auto_quote <- function(x) {
 }
 
 test_prefix <- function(suite) {
-  if (suite == "tests") "test-roxytest-tests-" else "test-biocroxytest-longtests-"
+  switch(suite, tests = "test-roxytest-tests-", testexamples = example_test_prefix,
+         longtests = "test-biocroxytest-longtests-")
 }
 
 test_title <- function(block, suite) {
   object <- block$object
-  title <- if (inherits(object, "s4method") && length(object$topic)) {
+  title <- if (suite != "testexamples" && inherits(object, "s4method") && length(object$topic)) {
     paste("Method", object$topic[[1L]])
   } else if (length(object$alias)) {
     name <- object$alias[[1L]]
-    if (suite == "tests") { name <- auto_quote(name) }
+    if (suite != "longtests") { name <- auto_quote(name) }
     paste0("Function ", name, "()")
   } else {
     "[unknown alias]"
@@ -77,7 +78,8 @@ process_test_suite <- function(blocks, suite, cases) {
 }
 
 plan_test_suite <- function(results, base_path, suite) {
-  path <- file.path(base_path, suite, "testthat")
+  directory <- if (suite == "testexamples") "tests" else suite
+  path <- file.path(base_path, directory, "testthat")
   sources <- names(results)
   filenames <- paste0(test_prefix(suite), sources, recycle0 = TRUE)
   if (length(sources) != length(results) || anyNA(sources) ||
@@ -94,7 +96,7 @@ plan_test_suite <- function(results, base_path, suite) {
   }
 
   if (length(results) && !dir.exists(path)) {
-    setup <- if (suite == "tests") "usethis::use_testthat()" else "biocroxytest::use_longtests()"
+    setup <- if (directory == "tests") "usethis::use_testthat()" else "biocroxytest::use_longtests()"
     cli::cli_abort(c(
       "Test output directory does not exist: {.path {path}}.",
       i = "Run {.code {setup}} first."
@@ -150,7 +152,7 @@ stage_test_suite <- function(plan, stage) {
 }
 
 write_test_suites <- function(results, base_path) {
-  paths <- file.path(base_path, names(results), "testthat")
+  paths <- file.path(base_path, intersect(c("tests", "longtests"), names(results)), "testthat")
   if (anyDuplicated(normalizePath(paths[dir.exists(paths)]))) {
     cli::cli_abort("Ordinary and long tests need separate {.path testthat} directories.",
                    call = NULL)
@@ -182,6 +184,6 @@ write_test_suites <- function(results, base_path) {
     }
   }
   record_suites <- getOption("biocroxytest.record_test_suites")
-  if (is.function(record_suites)) { record_suites(names(results)) }
+  if (is.function(record_suites)) { record_suites(intersect(c("tests", "longtests"), names(results))) }
   unlist(lapply(results, names), use.names = FALSE)
 }

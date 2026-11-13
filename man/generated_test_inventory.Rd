@@ -22,9 +22,9 @@ followed by the inventory columns.
 }
 \description{
 The inventory lists owned test files in \code{tests/testthat} and
-\code{longtests/testthat}. It includes ordinary \verb{@tests} files from roxytest
-that biocroxytest can adopt. Manual tests, helpers, snapshots, and
-roxytest \verb{@testexamples} are excluded.
+\code{longtests/testthat}. It includes \verb{@tests} and \verb{@testexamples} files from
+roxytest that biocroxytest can adopt.
+Manual tests, helpers and snapshots are excluded.
 }
 \details{
 The check regenerates tests in a temporary copy using the package's
