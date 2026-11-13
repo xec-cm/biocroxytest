@@ -193,6 +193,22 @@ incomplete. Regenerate tests before recording evidence.
 Each case runs in a fresh R session and a temporary copy, with its suite's
 testthat helpers, setup and teardown.
 
+## Replay a failed case
+
+```{r, eval=FALSE}
+evidence <- biocroxytest::run_test_plan(ids = "alignment/hdf5", seed = 42L)
+record <- biocroxytest::write_test_replay(evidence, "alignment/hdf5", "../alignment-failure.rds")
+record$command
+replayed <- biocroxytest::replay_test_case("../alignment-failure.rds")
+replayed$comparison
+```
+
+Export a case whose status is `failed` and keep the RDS file outside the
+package source. Replay uses the recorded R seed and checks the package
+revision and fixture identity before running. It compares the failure
+messages and available source locations and reports environment changes. Keep the
+matching source and fixture inputs available.
+
 ## Pin test fixtures
 
 Add `fs` to your package's Suggests and a `fixtures` list to the named case.

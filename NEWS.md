@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Export a failed named case and replay it with the recorded R seed, source
+  revision and verified fixture identities (#14).
+
 * Declare checksummed fixtures for named cases. Check required files before
   execution, record fixture evidence and reuse optional HTTPS downloads
   through BiocFileCache (#13).

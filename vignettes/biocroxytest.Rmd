@@ -190,6 +190,13 @@ for all named cases or a selection by ID. Each case runs in a fresh R session
 in a temporary package copy. The report includes a fingerprint of the copied
 package revision. A case that skips after a passing assertion is incomplete.
 
+Export a failed case with `write_test_replay(evidence, id, file)` and rerun
+it with `replay_test_case(file, path)`. Save the record outside the source
+tree and use the matching package revision and fixture files. The replay
+restores the initial R seed and reports whether the failure matched.
+Set any backend-specific seeds, such as BiocParallel RNG seeds, in the
+case setup when those streams matter.
+
 Pin a named case's input files in its `fixtures` list. Each named fixture
 declares a suite-relative file path or HTTPS `source` and an `md5` checksum.
 Access verified paths with `fixture_paths[["name"]]` in the setup or test.

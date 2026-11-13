@@ -8,7 +8,8 @@ run_test_plan(
   path = ".",
   ids = NULL,
   download_fixtures = FALSE,
-  fixture_cache = NULL
+  fixture_cache = NULL,
+  seed = NULL
 )
 }
 \arguments{
@@ -21,6 +22,9 @@ a verified copy is unavailable in the cache. Defaults to \code{FALSE}.}
 
 \item{fixture_cache}{BiocFileCache directory. \code{NULL} uses the package's
 user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
+
+\item{seed}{An optional integer seed used independently for each selected
+case. With \code{NULL}, each case gets a seed in its own R process.}
 }
 \value{
 A list with \code{revision}, a content fingerprint, \code{cases}, a data
@@ -32,6 +36,9 @@ time for the case, or elapsed runner time when execution is interrupted.
 \code{fixtures} contains the preflight fixture sources, expected and observed
 checksums, availability and diagnostics, keyed by case ID. A case with
 an unavailable required fixture is \code{incomplete} and does not start.
+\code{replay} holds the seed, RNG kind and selected environment settings for
+executed cases, keyed by case ID. Use \link[=write_test_replay]{write_test_replay()}
+to export a failure.
 }
 \description{
 Run the selected \code{\link[=test_case_plan]{test_case_plan()}} cases using their generated files and
