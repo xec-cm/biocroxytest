@@ -107,10 +107,13 @@ test_that("an unused suite does not require setup", {
 
 test_that("the suites cannot share one output directory", {
   with_test_suites({
+    # Windows checks whether the target is a directory before creating the link.
+    target <- normalizePath("tests/testthat", mustWork = TRUE)
     unlink("longtests/testthat", recursive = TRUE)
-    if (!file.symlink("../tests/testthat", "longtests/testthat")) {
+    if (!suppressWarnings(file.symlink(target, "longtests/testthat"))) {
       skip("Cannot create a directory symlink")
     }
+    expect_true(dir.exists("longtests/testthat"))
     writeLines(c("#' @tests expect_true(TRUE)", "#' @longtests expect_false(FALSE)",
                  "a <- function() TRUE"), "R/a.R")
     expect_error(generate_test_suites(clean = TRUE), "separate testthat directories")
