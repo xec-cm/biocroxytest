@@ -47,10 +47,10 @@ test_that("named cases share a body and select helpers from their own suite", {
   expect_identical(plan$description, plan$id)
   expect_false(any(file.exists(file.path(pkg, plan$path))))
   expect_error(run_test_case("alignment/disk", pkg, "silent"), "missing or out of date")
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
   expect_true(all(file.exists(file.path(pkg, plan$path))))
   for (id in plan$id) {
-    result <- as.data.frame(run_test_case(id, pkg, "silent"))
+    result <- as.data.frame(suppressMessages(run_test_case(id, pkg, reporter = "silent")))
     expect_identical(result$test, id)
     expect_identical(result$failed, 0L)
     expect_false(result$error)
@@ -89,7 +89,7 @@ test_that("invalid declarations fail before replacing generated output", {
   on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
   source <- file.path(pkg, "R/answer.R")
   writeLines(named_case_source(), source)
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
   paths <- file.path(pkg, test_case_plan(pkg)$path)
   before <- lapply(paths, readLines)
 
@@ -101,7 +101,7 @@ test_that("invalid declarations fail before replacing generated output", {
   )) {
     writeLines(c("#' @testCases alignment", paste("#'", declaration), "NULL"), source)
     expect_error(test_case_plan(pkg), class = "biocroxytest_invalid_test_case")
-    expect_error(roxygen2::roxygenise(pkg, clean = TRUE, load_code = roxygen2::load_source),
+    expect_error(roxygenise_fixture(pkg, clean = TRUE),
                  class = "biocroxytest_invalid_test_case")
     expect_identical(lapply(paths, readLines), before)
   }
@@ -143,8 +143,8 @@ test_that("local selection accepts literal UTF-8 from generated tests", {
     "NULL"
   )
   writeLines(code, file.path(pkg, "R/utf8.R"), useBytes = TRUE)
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
-  result <- as.data.frame(run_test_case("unicode/one", pkg, "silent"))
+  roxygenise_fixture(pkg)
+  result <- as.data.frame(suppressMessages(run_test_case("unicode/one", pkg, reporter = "silent")))
   expect_identical(result$passed, 1L)
   expect_false(result$error)
 })
@@ -171,16 +171,16 @@ test_that("selecting a case preserves snapshots for other cases with the same pr
     "#' ), test = { expect_snapshot(cat(value)) })",
     "NULL"
   ), file.path(pkg, "R/snapshots.R"))
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
   plan <- test_case_plan(pkg)
-  roxygen2::load_pkgload(pkg)
+  suppressMessages(roxygen2::load_pkgload(pkg))
   suppressWarnings(testthat::test_file(
     file.path(pkg, plan$path[1L]), reporter = "silent", package = "namedcasefixture"
   ))
   snapshot <- file.path(pkg, "tests/testthat/_snaps/roxytest-tests-snapshots.md")
   before <- readLines(snapshot)
   expect_true(all(c("first", "second") %in% trimws(before)))
-  result <- as.data.frame(run_test_case("snapshots/a", pkg, "silent"))
+  result <- as.data.frame(suppressMessages(run_test_case("snapshots/a", pkg, reporter = "silent")))
   expect_identical(result$test, "snapshots/a")
   expect_identical(result$passed, 1L)
   expect_identical(readLines(snapshot), before)

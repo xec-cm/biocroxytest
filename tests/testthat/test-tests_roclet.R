@@ -17,7 +17,7 @@ with_test_suites <- function(code) {
 }
 
 generate_test_suites <- function(roclets = "biocroxytest::tests_roclet", clean = FALSE) {
-  roxygen2::roxygenise(roclets = roclets, load_code = roxygen2::load_source, clean = clean)
+  roxygenise_fixture(roclets = roclets, clean = clean)
 }
 
 test_that("the unified roclet keeps test bodies with their own file and suite", {
@@ -125,7 +125,7 @@ test_that("the suites cannot share one output directory", {
 })
 
 test_that("competing roclets are rejected before clean can delete tests", {
-  skip_if_not_installed("roxytest")
+  suppressPackageStartupMessages(skip_if_not_installed("roxytest"))
   with_test_suites({
     path <- "tests/testthat/test-roxytest-tests-a.R"
     writeLines(roxytest_header, path)

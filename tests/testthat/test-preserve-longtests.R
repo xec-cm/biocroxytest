@@ -39,7 +39,7 @@ test_that("long tests sharing an Rd topic stay with their source methods", {
   ), file.path(pkg, "R", "b.R"))
 
   env <- roxygen2::load_source(pkg)
-  roxygen2::roxygenise(
+  roxygenise_fixture(
     pkg,
     roclets = "biocroxytest::longtests_roclet",
     load_code = function(path) env

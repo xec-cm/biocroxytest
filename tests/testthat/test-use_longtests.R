@@ -12,7 +12,7 @@ with_setup_package <- function(code) {
 
 test_that("use_longtests creates a runner for the current package", {
   with_setup_package({
-    use_longtests()
+    suppressMessages(use_longtests())
     runner <- readLines("longtests/testthat.R")
     expect_true(dir.exists("longtests/testthat"))
     expect_true('library("setupfixture")' %in% runner)
@@ -26,13 +26,13 @@ test_that("use_longtests copies a runner once and preserves it on reruns", {
     dir.create("tests")
     original <- c("# Ordinary runner", "testthat::test_check('setupfixture')")
     writeLines(original, "tests/testthat.R")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(readLines("longtests/testthat.R"), original)
 
     custom <- c("# Custom long test runner", "options(my_test_mode = TRUE)")
     writeLines(custom, "longtests/testthat.R")
     writeLines("# A manual long test", "longtests/testthat/test-manual.R")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(readLines("longtests/testthat.R"), custom)
     expect_identical(readLines("longtests/testthat/test-manual.R"), "# A manual long test")
   })
@@ -42,11 +42,11 @@ test_that("use_longtests ignores commented options and updates only the active f
   with_setup_package({
     preserved <- c("# RunLongTests: FALSE", "UnsupportedPlatforms: win", "  linux")
     writeLines(preserved, ".BBSoptions")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(readLines(".BBSoptions"), c(preserved, "RunLongTests: TRUE"))
 
     writeLines(c(preserved, "RunLongTests:\tfalse", "GPU_reliance: optional"), ".BBSoptions")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(
       readLines(".BBSoptions"),
       c(preserved, "RunLongTests: TRUE", "GPU_reliance: optional")
@@ -54,13 +54,13 @@ test_that("use_longtests ignores commented options and updates only the active f
 
     current <- c(preserved, "RunLongTests: true")
     writeLines(current, ".BBSoptions")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(readLines(".BBSoptions"), current)
 
     # BBS merges records and recognizes continuations after a comment.
     writeLines(c("RunLongTests: TRUE", "", "RunLongTests:", "# keep", "  false",
                  "GPU_reliance: optional"), ".BBSoptions")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(
       readLines(".BBSoptions"),
       c("RunLongTests: TRUE", "", "RunLongTests: TRUE", "# keep",
@@ -83,7 +83,7 @@ test_that("use_longtests removes a BOM that hides the first field from BBS", {
     bom <- as.raw(c(0xef, 0xbb, 0xbf))
     expected <- c("RunLongTests: TRUE", "GPU_reliance: optional")
     writeBin(c(bom, charToRaw(paste0(expected, "\n", collapse = ""))), ".BBSoptions")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_false(identical(readBin(".BBSoptions", "raw", n = 3L), bom))
     expect_identical(readLines(".BBSoptions"), expected)
   })
@@ -111,7 +111,7 @@ test_that("a failed ordinary runner copy leaves setup safe to retry", {
     expect_false(file.exists(runner))
     expect_false(file.exists(".BBSoptions"))
     Sys.chmod(ordinary, "0600")
-    use_longtests()
+    suppressMessages(use_longtests())
     expect_identical(readLines(runner), "# Ordinary runner")
     expect_identical(readLines(".BBSoptions"), "RunLongTests: TRUE")
   })

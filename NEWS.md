@@ -1,5 +1,9 @@
 # biocroxytest (development version)
 
+* Add `run_test_plan()` to report which named cases ran, how long they
+  took and the package revision and R environment used (#12).
+* Keep test fixture output out of the progress reporter.
+
 * Support `@testexamples` in the unified roclet. Run documented examples
   before their assertions with Rd execution rules and runtime conditions (#11).
 

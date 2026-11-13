@@ -31,6 +31,7 @@ Suggests:
     HDF5Array,
     here,
     knitr,
+    R6,
     rmarkdown,
     roxytest,
     SummarizedExperiment,

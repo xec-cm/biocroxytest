@@ -83,13 +83,15 @@ test_that("named cases preserve sample alignment in memory and on HDF5", {
   expect_identical(plan$id, c("sample-alignment/hdf5", "sample-alignment/memory"))
   expect_identical(plan$suite, c("longtests", "tests"))
   expect_false(any(file.exists(file.path(pkg, plan$path))))
-  roxygen2::roxygenise(pkg, load_code = roxygen2::load_source)
+  roxygenise_fixture(pkg)
   expect_true(all(file.exists(file.path(pkg, plan$path))))
   expect_length(list.files(pkg, pattern = "[.]h5$", recursive = TRUE), 0L)
 
   fields <- c("test", "failed", "skipped", "error", "warning", "passed")
   for (i in seq_len(nrow(plan))) {
-    selected <- as.data.frame(run_test_case(plan$id[i], pkg, reporter = "silent"))
+    selected <- as.data.frame(suppressMessages(
+      run_test_case(plan$id[i], pkg, reporter = "silent")
+    ))
     suite <- alignment_suite_results(pkg, plan$suite[i])
     expect_identical(selected[fields], suite[fields])
     expect_identical(selected$test, plan$id[i])
@@ -112,13 +114,17 @@ test_that("named cases preserve sample alignment in memory and on HDF5", {
     "}"
   ), source)
 
-  hdf5 <- as.data.frame(run_test_case("sample-alignment/hdf5", pkg, reporter = "silent"))
+  hdf5 <- as.data.frame(suppressMessages(
+    run_test_case("sample-alignment/hdf5", pkg, reporter = "silent")
+  ))
   expect_identical(hdf5$test, "sample-alignment/hdf5")
   expect_identical(hdf5$failed, 1L)
   expect_false(hdf5$skipped)
   expect_false(hdf5$error)
   expect_identical(hdf5[fields], alignment_suite_results(pkg, "longtests")[fields])
-  memory <- as.data.frame(run_test_case("sample-alignment/memory", pkg, reporter = "silent"))
+  memory <- as.data.frame(suppressMessages(
+    run_test_case("sample-alignment/memory", pkg, reporter = "silent")
+  ))
   expect_identical(memory$test, "sample-alignment/memory")
   expect_identical(memory$failed, 0L)
   expect_false(memory$skipped)
