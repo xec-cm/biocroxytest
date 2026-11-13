@@ -2,4 +2,33 @@ url: https://xec-cm.github.io/biocroxytest/
 template:
   bootstrap: 5
   bootswatch: minty
+articles:
+- title: Guides
+  navbar: ~
+  contents:
+  - biocroxytest
+  - named-cases
+reference:
+- title: Generate and check tests
+  contents:
+  - tests_roclet
+  - longtests_roclet
+  - use_longtests
+  - generated_test_inventory
+- title: Plan and run named cases
+  contents:
+  - test_case_plan
+  - compare_test_plans
+  - run_test_case
+  - run_test_plan
+  - test_fixtures
+- title: Replay and reduce failures
+  contents:
+  - write_test_replay
+  - reduce_paired_failure
+- title: internal
+  contents:
+  - roclet_clean.roclet_longtests
+  - roclet_output.roclet_longtests
+  - roclet_process.roclet_longtests
 

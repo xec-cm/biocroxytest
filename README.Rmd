@@ -2,290 +2,92 @@
 output: github_document
 ---
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
+<!-- README.md is generated from README.Rmd. Please edit that file. -->
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-    collapse = TRUE,
-    comment = "#>",
-    fig.path = "man/figures/README-",
-    out.width = "100%"
-)
-```
-
-# biocroxytest <a href="https://xec-cm.github.io/biocroxytest/"><img src="man/figures/logo.png" align="right" height="138" alt="biocroxytest website" /></a>
+# biocroxytest <a href="https://xec-cm.github.io/biocroxytest/"><img src="man/figures/logo.png" align="right" height="138" alt="biocroxytest logo" /></a>
 
 <!-- badges: start -->
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Bioconductor](https://img.shields.io/badge/Bioconductor-biocroxytest-blue)](https://www.bioconductor.org/packages/release/bioc/html/biocroxytest.html)
 [![R-CMD-check](https://github.com/xec-cm/biocroxytest/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/xec-cm/biocroxytest/actions)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
-[![GitHub issues](https://img.shields.io/github/issues/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/issues)
-[![GitHub pulls](https://img.shields.io/github/issues-pr/xec-cm/biocroxytest)](https://github.com/xec-cm/biocroxytest/pulls)
 <!-- badges: end -->
 
-Write ordinary and Bioconductor long tests alongside the code they cover.
-`biocroxytest` turns `@tests` and `@longtests` tags into standard testthat files.
-The approach builds on `r BiocStyle::Githubpkg("mikldk/roxytest")` and
-`r BiocStyle::Githubpkg("r-lib/roxygen2")`.
+Write testthat assertions next to the R code they cover. biocroxytest uses
+roxygen2 to generate test files and helps keep Bioconductor long tests in a
+separate suite. The test-generation workflow builds on
+[roxytest](https://github.com/mikldk/roxytest).
 
-## Installation instructions
+## Installation
 
-Get the latest stable `R` release from [CRAN](http://cran.r-project.org/). Then 
-install `biocroxytest` from [Bioconductor](http://bioconductor.org/) using the 
-following code:
+### GitHub development build
 
-```{r 'install', eval = FALSE}
-# Not yet on Bioconductor
-# if (!requireNamespace("BiocManager", quietly = TRUE)) {
-#     install.packages("BiocManager")
-# }
-# 
-# BiocManager::install("biocroxytest")
+This site documents the [GitHub devel branch](https://github.com/xec-cm/biocroxytest/tree/devel).
+Install it for the unified test roclet, named cases, fixtures, replay and
+paired-data reduction.
+
+```{r install-github, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  BiocManager::install("remotes")
+}
+BiocManager::install("xec-cm/biocroxytest@devel", update = FALSE)
 ```
 
-And the development version from [GitHub](https://github.com/xec-cm/biocroxytest)
-with:
+### Bioconductor release
 
-```{r 'install_dev', eval = FALSE}
-BiocManager::install("xec-cm/biocroxytest")
+biocroxytest has been available through Bioconductor since 3.19. Install the
+release compatible with your R version using BiocManager.
+
+```{r install-bioc, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+BiocManager::install("biocroxytest")
 ```
 
-## Example
+See the [Bioconductor package page](https://www.bioconductor.org/packages/release/bioc/html/biocroxytest.html)
+and [release vignette](https://www.bioconductor.org/packages/release/bioc/vignettes/biocroxytest/inst/doc/biocroxytest.html)
+for documentation of that build.
 
-Set up ordinary tests with `usethis::use_testthat()` and long tests with
-`biocroxytest::use_longtests()`. Run the setup for the suites you use and list
-`testthat` in Suggests. Add the generator to your existing roxygen configuration
-in DESCRIPTION.
+## Get started
 
-```
+With the GitHub development build, install `testthat` and add it to
+`Suggests`. Set up the suites you use from your package root with
+`usethis::use_testthat()` for ordinary tests and
+`biocroxytest::use_longtests()` for long tests. Install `usethis` if you
+use the ordinary setup. Add the unified roclet to your existing roxygen
+configuration in `DESCRIPTION`.
+
+```text
 Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))
 ```
 
-Write the body of each test in a tag. For example, in `R/functions.R`:
+Add assertions to a roxygen block in `R/`.
 
-```{r, eval=FALSE}
-#' A function to do x
-#' 
-#' @param x A number
-#' 
-#' @tests
-#' expect_equal(foo(0), 0)
-#'
-#' @longtests 
-#' expect_equal(foo(2), sqrt(2))
-#' expect_error(foo("a string"))
-#' 
-#' @return something
-foo <- function(x) {
-  return(sqrt(x))
-}
-
-#' A function to do y
-#' 
-#' @param x Character vector
-#' @param y Character vector
-#' 
-#' @longtests 
-#' expect_equal(bar("A", "B"), paste("A", "B", sep = "/"))
-#' 
-#' @export
-bar <- function(x, y) {
-  paste0(x, "/", y)
-}
-```
-
-Run `roxygen2::roxygenise()`. The ordinary tests go to
-`tests/testthat/test-roxytest-tests-functions.R` and the long tests go to
-`longtests/testthat/test-biocroxytest-longtests-functions.R`. Each suite
-uses its own testthat runner and helpers. The package only needs testthat to run
-the generated tests.
-
-For a long-test-only configuration, continue using
-`biocroxytest::longtests_roclet`.
-
-## Migrate from roxytest
-
-Preview the migration in a clean branch or disposable copy. Replace
-`roxytest::testthat_roclet` and, if present, `biocroxytest::longtests_roclet`
-with `biocroxytest::tests_roclet`. Regenerate and inspect the diff, then run
-your test suites. The generator retains the `test-roxytest-tests-` and
-`test-roxytest-testexamples-` prefixes and updates the ownership header.
-Use the default `clean = FALSE` with custom roclets. The unified roclet
-cleans up obsolete generated tests after validating both suites on every run.
-
-For shared `@rdname` topics, each tag follows its own source file. If roxytest
-previously merged those blocks, a test can move or change description. Review
-and migrate any affected snapshots before adopting the generated files.
-To revert a migration, restore both the previous configuration and its
-generated files.
-
-## Test documented examples
-
-Add `@testexamples` with the assertions to run after the examples on the
-same topic. Each tag produces an ordinary test with its own example variables.
-
-```{r, eval=FALSE}
+```{r first-test, eval=FALSE}
 #' Increment an integer
-#' @examples
-#' value <- increment(2L)
-#' @testexamples
-#' expect_identical(value, 3L)
+#'
+#' @param x An integer vector.
+#' @return An integer vector.
+#' @export
+#' @tests
+#' expect_identical(increment(2L), 3L)
 increment <- function(x) x + 1L
 ```
 
-The roclet runs `@examples` and `@example` in roxygen's block order, including
-direct examples from blocks that contribute to the same Rd topic. R's Rd rules omit
-`\dontrun{}` and execute `\dontshow{}` and `\donttest{}`. Use `@examplesIf`
-for examples that depend on an optional resource. Its condition is evaluated
-during the test, after the preceding examples. If it is false, testthat skips
-that test and its assertions. Rd platform directives are resolved on the
-machine generating the tests. This workflow uses direct examples. It excludes
-inherited examples and templates, and rejects Rd `\Sexpr{}` expressions.
+Run `roxygen2::roxygenise()` from the package root and commit the generated
+files. Ordinary tests live in `tests/testthat/`. Tests declared with
+`@longtests` live in `longtests/testthat/`.
 
-## Share a test across named cases
-
-With `biocroxytest::tests_roclet`, put a literal list in an `@testCases`
-tag. Each case chooses a suite and can prepare its own inputs. The shared
-body runs once per case.
-
-```{r, eval=FALSE}
-#' @testCases arithmetic
-#' list(
-#'   cases = list(
-#'     small = list(suite = "tests", setup = { x <- 2L }),
-#'     large = list(suite = "longtests", setup = { x <- 1000L })
-#'   ),
-#'   test = { expect_identical(increment(x), x + 1L) }
-#' )
-increment <- function(x) x + 1L
-```
-
-```{r, eval=FALSE}
-before <- biocroxytest::test_case_plan()
-roxygen2::roxygenise()
-biocroxytest::run_test_case("arithmetic/large")
-
-# After editing the declarations:
-biocroxytest::compare_test_plans(before, biocroxytest::test_case_plan())
-```
-
-IDs use the group and case names and survive changes of file or suite.
-The planner reads declarations without loading the consumer package.
-The generator leaves fixture creation to test execution. The local runner
-uses the selected suite's testthat helpers, setup and teardown in a temporary
-copy to protect existing snapshots. Run the full suite to review snapshot
-changes and exercise any custom suite runner.
-
-## Record named test results
-
-```{r, eval=FALSE}
-evidence <- biocroxytest::run_test_plan()
-evidence$cases
-```
-
-The report records each case's status and duration alongside the revision
-fingerprint and R environment. Pass `ids` to record selected cases.
-`completed` requires a passing assertion and reaching the end of the case
-without skips. Failed assertions, explicit skips, incomplete execution
-and missing results have their own statuses. A stale generated case is
-incomplete. Regenerate tests before recording evidence.
-
-Each case runs in a fresh R session and a temporary copy, with its suite's
-testthat helpers, setup and teardown.
-
-## Replay a failed case
-
-```{r, eval=FALSE}
-evidence <- biocroxytest::run_test_plan(ids = "alignment/hdf5", seed = 42L)
-record <- biocroxytest::write_test_replay(evidence, "alignment/hdf5", "../alignment-failure.rds")
-record$command
-replayed <- biocroxytest::replay_test_case("../alignment-failure.rds")
-replayed$comparison
-```
-
-Export a case whose status is `failed` and keep the RDS file outside the
-package source. Replay uses the recorded R seed and checks the package
-revision and fixture identity before running. It compares the failure
-messages and available source locations and reports environment changes. Keep the
-matching source and fixture inputs available.
-
-## Pin test fixtures
-
-Add `fs` to your package's Suggests and a `fixtures` list to the named case.
-For example, put `fixture.tsv` in the case's `tests/testthat` directory and compute its
-checksum with `tools::md5sum("tests/testthat/fixture.tsv")`.
-
-```r
-#' @testCases table
-#' list(
-#'   cases = list(
-#'     small = list(suite = "tests", fixtures = list(
-#'       data = list(source = "fixture.tsv", md5 = "<32-digit checksum>")
-#'     ))
-#'   ),
-#'   test = { expect_gt(nrow(read.delim(fixture_paths[["data"]])), 0L) }
-#' )
-```
-
-For an HTTPS source, install BiocFileCache and run
-`run_test_plan(download_fixtures = TRUE)` to populate the cache.
-Later runs can use the cache offline. The report's
-`fixtures` field records each check. A missing or changed required fixture
-blocks the case. With `required = FALSE`, the case can handle an unavailable
-fixture through an `NA` path. Standard testthat runs verify local files and
-skip cases that require a remote fixture.
-
-## Reduce a paired failure
-
-Use `reduce_paired_failure()` to find a smaller SummarizedExperiment for
-an ordinary regression test. The pilot supports two conditions, one sample
-per condition and pair, and an additive design with the pair and condition
-as main effects.
-
-```{r, eval=FALSE}
-reduced <- biocroxytest::reduce_paired_failure(
-  x, pair = "subject", condition = "visit", design = ~ subject + visit,
-  check = check_known_failure
-)
-dim(reduced$data)
-reduced$failure
-```
-
-Implement `check_known_failure()` to run the failing operation and return
-a stable identifier for the specific failure, or `NULL` if it is absent.
-The reducer checks the original data, tries smaller subsets of features
-and complete pairs, and checks the final subset again. It preserves a
-full-rank design with residual degrees of freedom. Review the subset and
-use it in an ordinary test of the expected correct behavior.
-
-## Check generated tests in CI
-
-List the generated files, their source files, and their suites with
-`biocroxytest::generated_test_inventory()`. To check that those files
-match the source, run this after installing the package's development
-dependencies:
-
-```sh
-Rscript --vanilla -e 'biocroxytest::check_generated_tests()'
-```
-
-Run the command from the consumer package root, or pass its path to the
-function. The check uses the configured biocroxytest roclet in a temporary
-copy. It exits with an error if generated files are missing, changed, or
-obsolete. Regenerate with `roxygen2::roxygenise()` and commit the resulting
-changes. Manual tests and snapshots are excluded from the comparison.
+- [Generate and run tests](https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html)
+- [Manage named cases, fixtures and failures](https://xec-cm.github.io/biocroxytest/articles/named-cases.html)
+- [Function reference](https://xec-cm.github.io/biocroxytest/reference/index.html)
 
 ## Contributing
 
-- If you think you have encountered a bug, please [submit an issue](https://github.com/xec-cm/biocroxytest/issues).
+Report bugs or propose changes through [GitHub Issues](https://github.com/xec-cm/biocroxytest/issues).
+Include a [minimal reproducible example](https://reprex.tidyverse.org/articles/articles/learn-reprex.html)
+when reporting a failure.
 
-- Either way, learn how to create and share a [reprex](https://reprex.tidyverse.org/articles/articles/learn-reprex.html) (a minimal, reproducible example), to clearly communicate about your code.
-
-- Working on your first Pull Request? You can learn how from this *free* series 
-[How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
-
-## Code of Conduct
-
-Please note that the `r BiocStyle::Githubpkg("xec-cm/biocroxytest")` project is 
-released with a [Contributor Code of Conduct](http://bioconductor.org/about/code-of-conduct/).
-By contributing to this project, you agree to abide by its terms.
+Contributions follow the [Bioconductor Code of Conduct](https://bioconductor.org/about/code-of-conduct/).
