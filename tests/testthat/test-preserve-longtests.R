@@ -10,10 +10,10 @@ test_that("repeated long test tags generate separate tests", {
   expect_length(cases, 2L)
   expect_identical(cases[[1L]][[2L]], "Function f() @ L5")
   expect_identical(anyDuplicated(vapply(cases, `[[`, character(1), 2L)), 0L)
-  expect_identical(lapply(cases, function(case) case[[3L]][[2L]]), list(
-    quote(expect_identical(1L, 1L)),
-    quote(expect_identical(2L, 2L))
-  ))
+  expect_identical(
+    lapply(cases, function(case) case[[3L]][[2L]]),
+    list(quote(expect_identical(1L, 1L)), quote(expect_identical(2L, 2L)))
+  )
 })
 
 test_that("long tests sharing an Rd topic stay with their source methods", {
@@ -21,8 +21,10 @@ test_that("long tests sharing an Rd topic stay with their source methods", {
   on.exit(unlink(pkg, recursive = TRUE), add = TRUE)
   dir.create(file.path(pkg, "R"), recursive = TRUE)
   dir.create(file.path(pkg, "longtests", "testthat"), recursive = TRUE)
-  writeLines(c("Package: longtestfixture", "Version: 0.0.1", "Encoding: UTF-8"),
-             file.path(pkg, "DESCRIPTION"))
+  writeLines(
+    c("Package: longtestfixture", "Version: 0.0.1", "Encoding: UTF-8"),
+    file.path(pkg, "DESCRIPTION")
+  )
   writeLines(character(), file.path(pkg, "NAMESPACE"))
   writeLines(c(
     "setGeneric('bcx_identity', function(x) standardGeneric('bcx_identity'))",
@@ -37,12 +39,13 @@ test_that("long tests sharing an Rd topic stay with their source methods", {
   ), file.path(pkg, "R", "b.R"))
 
   env <- roxygen2::load_source(pkg)
-  roxygen2::roxygenise(pkg, roclets = "biocroxytest::longtests_roclet",
-                      load_code = function(path) env)
+  roxygen2::roxygenise(
+    pkg,
+    roclets = "biocroxytest::longtests_roclet",
+    load_code = function(path) env
+  )
   files <- list.files(file.path(pkg, "longtests", "testthat"), full.names = TRUE)
-  expect_identical(basename(files), paste0(
-    "test-biocroxytest-longtests-", c("a.R", "b.R")
-  ))
+  expect_identical(basename(files), paste0("test-biocroxytest-longtests-", c("a.R", "b.R")))
   cases <- lapply(files, function(file) parse(file)[[1L]])
   expect_identical(vapply(cases, `[[`, character(1), 2L), c(
     "Method bcx_identity,integer-method @ L4",
