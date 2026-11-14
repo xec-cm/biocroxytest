@@ -86,16 +86,10 @@ test_package_path <- function(path) {
 }
 
 check_test_collate <- function(path, manifest) {
-  sources <- test_r_sources(path)
-  excluded <- setdiff(sources, manifest$path)
-  if (!length(excluded)) { return(invisible(NULL)) }
-
   fields <- c("Collate", "Collate.unix", "Collate.windows")
-  values <- read.dcf(file.path(path, "DESCRIPTION"), fields = fields)[1L, ]
-  listed <- unlist(lapply(values[!is.na(values)], function(value) {
-    scan(text = value, what = character(), quiet = TRUE)
-  }), use.names = FALSE)
-  stale <- intersect(paste0("R/", listed, recycle0 = TRUE), excluded)
+  listed <- test_collate_sources(path, fields)
+  present <- listed[file.exists(file.path(path, listed))]
+  stale <- setdiff(present, manifest$path)
   if (length(stale)) {
     cli::cli_abort(c(
       "Excluded R sources are listed in {.file DESCRIPTION}: {.file {stale}}.",

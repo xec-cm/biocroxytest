@@ -140,19 +140,48 @@ test_that("excluded source files are obsolete for both roclets", {
   }
 })
 
-test_that("roclets retain sources with a case-insensitive exception", {
-  pkg <- new_generated_test_fixture('"biocroxytest::tests_roclet"')
+test_that("roclets recover case-insensitive exceptions in example order", {
+  pkg <- new_generated_test_fixture()
   withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
-  writeLines("^R/(?!keep[.]R$).*[.]R$", file.path(pkg, ".Rbuildignore"))
+  writeLines("^R/(?!keep[.]R$|helper[.]R$).*[.]R$", file.path(pkg, ".Rbuildignore"))
   writeLines(c(
+    "#' Keep",
+    "#' @order 1",
+    "#' @examples x <- 1L",
     "#' @testCases retained",
     "#' list(cases = list(one = list(suite = 'tests')), test = { expect_true(TRUE) })",
     "keep <- function() TRUE"
   ), file.path(pkg, "R", "KEEP.R"))
+  writeLines(c(
+    "#' @rdname keep",
+    "#' @order 2",
+    "#' @examples y <- x + 1L",
+    "#' @testexamples expect_identical(y, 2L)",
+    "helper <- function() TRUE"
+  ), file.path(pkg, "R", "helper.R"))
   roxygenise_fixture(pkg, load_code = roxygen2::load_pkgload)
   expect_identical(test_case_plan(pkg)$id, "retained/one")
-  expect_identical(generated_test_inventory(pkg)$source, "R/KEEP.R")
+  inventory <- generated_test_inventory(pkg)
+  expect_equal(nrow(inventory), 2L)
+  example <- inventory$path[startsWith(basename(inventory$path), example_test_prefix)]
+  results <- as.data.frame(testthat::test_file(file.path(pkg, example), reporter = "silent"))
+  expect_identical(results$passed, 1L)
   expect_true(check_generated_fixture(pkg))
+})
+
+test_that("roclets respect exclusions of platform source directories", {
+  pkg <- new_generated_test_fixture('"biocroxytest::tests_roclet"')
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  dir.create(file.path(pkg, "R", "unix"))
+  cat("Collate: 'main.R' 'unix/excluded.R'\n", file = file.path(pkg, "DESCRIPTION"), append = TRUE)
+  writeLines("^r/UNIX$", file.path(pkg, ".Rbuildignore"))
+  writeLines("main <- function() TRUE", file.path(pkg, "R", "main.R"))
+  writeLines(c("#' @tests stop('Excluded platform test')", "excluded <- function() TRUE"),
+             file.path(pkg, "R", "unix", "excluded.R"))
+  roxygenise_fixture(pkg)
+  expect_equal(nrow(generated_test_inventory(pkg)), 0L)
+  expect_error(check_generated_fixture(pkg), "Remove them from the Collate fields",
+               class = "biocroxytest_test_check_input")
 })
 
 test_that("roclets omit tests from excluded source links", {

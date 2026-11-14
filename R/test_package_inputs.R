@@ -20,14 +20,31 @@ test_r_sources <- function(path) {
 }
 
 test_ignored_sources <- function(sources, patterns, legacy = FALSE) {
-  test_build_ignored(sources, patterns, ignore_case = !legacy) |
-    (!legacy & test_build_ignored("R", patterns))
+  excluded <- test_build_ignored(sources, patterns, ignore_case = !legacy)
+  if (legacy) { return(excluded) }
+  parents <- dirname(sources)
+  while (any(parents != ".")) {
+    active <- parents != "."
+    excluded[active] <- excluded[active] | test_build_ignored(parents[active], patterns)
+    parents <- dirname(parents)
+  }
+  excluded
+}
+
+test_collate_sources <- function(path, fields = "Collate") {
+  description <- file.path(path, "DESCRIPTION")
+  if (!file.exists(description)) { return(character()) }
+  values <- read.dcf(description, fields = fields)[1L, ]
+  listed <- unlist(lapply(values[!is.na(values)], function(value) {
+    scan(text = value, what = character(), quiet = TRUE)
+  }), use.names = FALSE)
+  paste0("R/", as.character(listed), recycle0 = TRUE)
 }
 
 select_test_blocks <- function(blocks, path, env) {
   patterns <- test_build_exclusions(path)
   if (!length(patterns)) { return(blocks) }
-  sources <- test_r_sources(path)
+  sources <- unique(c(test_collate_sources(path), sort(test_r_sources(path), method = "radix")))
   excluded <- test_ignored_sources(sources, patterns)
   # Roxygen can report the resolved target of a source link as the block origin.
   origins <- normalizePath(file.path(path, sources), winslash = "/", mustWork = FALSE)
@@ -35,13 +52,22 @@ select_test_blocks <- function(blocks, path, env) {
   block_files <- vapply(blocks, function(block) {
     if (length(block$file)) normalizePath(block$file, winslash = "/", mustWork = FALSE) else ""
   }, character(1))
-  blocks <- blocks[!block_files %in% omitted]
+  keep <- !block_files %in% omitted
+  blocks <- blocks[keep]
 
   # A case-sensitive negated pattern can make roxygen omit a retained source.
   missed <- !excluded & test_build_ignored(sources, patterns, ignore_case = FALSE) &
-    !origins %in% block_files
+    !origins %in% block_files & file.exists(origins)
+  if (!any(missed)) { return(blocks) }
   recovered <- lapply(origins[missed], roxygen2::parse_file, env = env)
-  c(blocks, unlist(recovered, recursive = FALSE))
+  files <- c(block_files[keep], rep(origins[missed], lengths(recovered)))
+  blocks <- c(blocks, unlist(recovered, recursive = FALSE))
+  # Match roxygen's @order, then Collate or C-sorted source order.
+  order_tag <- vapply(blocks, function(block) {
+    tag <- roxygen2::block_get_tag(block, "order")
+    if (is.null(tag)) Inf else as.double(tag$val)
+  }, numeric(1))
+  blocks[order(order_tag, match(files, origins))]
 }
 
 test_package_manifest <- function(path, legacy = FALSE) {
