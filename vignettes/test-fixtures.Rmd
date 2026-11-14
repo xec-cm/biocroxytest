@@ -187,6 +187,6 @@ execution. Set `required = FALSE` only when the test handles an unavailable
 input: its `fixture_paths` entry will be `NA_character_`.
 
 ```{r cleanup-fixtures, include=FALSE}
-if ("samplealignment" %in% loadedNamespaces()) pkgload::unload("samplealignment")
+if ("samplealignment" %in% loadedNamespaces()) unloadNamespace("samplealignment")
 unlink(pkg, recursive = TRUE)
 ```

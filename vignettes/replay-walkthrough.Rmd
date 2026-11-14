@@ -135,7 +135,7 @@ The [paired-data reduction recipe](reduce-failures.html) is an optional next
 step when the data needed to reproduce a failure are too large.
 
 ```{r cleanup, include=FALSE}
-if (isNamespaceLoaded("samplealignment")) pkgload::unload("samplealignment")
+if (isNamespaceLoaded("samplealignment")) unloadNamespace("samplealignment")
 unlink(pkg, recursive = TRUE)
 unlink(record_file)
 ```

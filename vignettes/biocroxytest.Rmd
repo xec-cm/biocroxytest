@@ -191,6 +191,6 @@ terminal's working directory. Substitute your own directory and package version.
 The next tutorial starts with a fresh copy, so you can also follow it independently.
 
 ```{r cleanup, include=FALSE}
-pkgload::unload("samplealignment")
+unloadNamespace("samplealignment")
 unlink(pkg, recursive = TRUE)
 ```

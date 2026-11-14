@@ -303,7 +303,7 @@ When you have finished inspecting the reports, remove only the paths
 created by this page:
 
 ```{r cleanup-workflows}
-if (isNamespaceLoaded("samplealignment")) pkgload::unload("samplealignment")
+if (isNamespaceLoaded("samplealignment")) unloadNamespace("samplealignment")
 unlink(c(pkg, reports), recursive = TRUE)
 ```
 

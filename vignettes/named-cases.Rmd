@@ -142,6 +142,6 @@ For specific tasks, see [fixture files](test-fixtures.html) and
 [CI, plan comparisons and source-copy rules](test-workflows.html).
 
 ```{r cleanup, include=FALSE}
-pkgload::unload("samplealignment")
+unloadNamespace("samplealignment")
 unlink(pkg, recursive = TRUE)
 ```
