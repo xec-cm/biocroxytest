@@ -1,125 +1,141 @@
 ---
-title: "Replay a sample-alignment failure"
+title: "3. Record, replay and fix a failure"
 output: rmarkdown::html_vignette
 description: >
-  Record a failed named case, replay it from the same source and verify the fix.
+  Introduce a sample-ordering bug, save a failed named case, reproduce the
+  same failure and verify the correction.
 vignette: >
-  %\VignetteIndexEntry{Replay a sample-alignment failure}
+  %\VignetteIndexEntry{3. Record, replay and fix a failure}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-A sample selection function should keep assay columns and sample metadata
-in sync and return the samples in the requested order. This example uses a
-deliberate bug in a small `SummarizedExperiment` to show how to record the
-failure, replay it and check the fix. It uses the GitHub development build
-of biocroxytest, SummarizedExperiment and testthat 3.3.0 or newer.
-
-## Create a named regression case
-
-Create a minimal source tree for the named-case runner. In an existing
-package, add the roclet to its `Roxygen` field and put the case next to
-the function it exercises.
-
-```{r setup-package}
-work <- tempfile("sample-alignment-")
-pkg <- file.path(work, "samplealignment")
-dir.create(file.path(pkg, "R"), recursive = TRUE)
-dir.create(file.path(pkg, "tests", "testthat"), recursive = TRUE)
-writeLines(c(
-  "Package: samplealignment",
-  "Version: 0.0.1",
-  "Encoding: UTF-8",
-  "Imports: SummarizedExperiment",
-  "Suggests: testthat (>= 3.3.0)",
-  "Config/testthat/edition: 3",
-  'Roxygen: list(roclets = "biocroxytest::tests_roclet")'
-), file.path(pkg, "DESCRIPTION"))
-writeLines("export(align_samples)", file.path(pkg, "NAMESPACE"))
+```{r options, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE)
 ```
 
-The case asks for `s3` followed by `s1`. The buggy implementation uses
-membership to select columns, so it returns them in their original order.
-The assertions specify the expected sample IDs, counts and conditions.
+Suppose a test fails on a colleague's machine. A replay record identifies the
+case, source revision, fixture checks, R seed and observed environment. With
+the matching source and inputs, you can rerun the case and compare the failure.
+It does not bundle the source or install old R/package versions for you.
 
-```{r write-case}
+We will deliberately introduce the sample-ordering bug from the
+[first tutorial](biocroxytest.html), record it, replay it and fix it. This uses
+the named cases from [the memory/HDF5 tutorial](named-cases.html), but all setup
+is repeated here so the article can be run independently. Use the GitHub
+development version and the dependencies listed in the first tutorial.
+
+## Start from the example package
+
+```{r copy-package}
+template <- system.file("examples", "samplealignment", package = "biocroxytest",
+                        mustWork = TRUE)
+pkg <- tempfile("samplealignment-")
+fs::dir_copy(template, pkg)
 source_file <- file.path(pkg, "R", "align-samples.R")
-writeLines(r"(
-#' @testCases sample-alignment
-#' list(
-#'   cases = list(reordered = list(suite = "tests")),
-#'   test = {
-#'     samples <- c("s1", "s2", "s3")
-#'     counts <- matrix(c(11L, 21L, 31L), nrow = 1L,
-#'                      dimnames = list("gene1", samples))
-#'     metadata <- data.frame(condition = c("control", "control", "treated"),
-#'                            row.names = samples)
-#'     x <- SummarizedExperiment::SummarizedExperiment(
-#'       assays = list(counts = counts), colData = metadata
-#'     )
-#'     aligned <- align_samples(x, c("s3", "s1"))
-#'     expect_identical(colnames(aligned), c("s3", "s1"))
-#'     expect_identical(as.integer(SummarizedExperiment::assay(aligned)),
-#'                      c(31L, 11L))
-#'     expect_identical(aligned$condition, c("treated", "control"))
-#'   }
-#' )
-align_samples <- function(x, samples) x[, colnames(x) %in% samples]
-)", source_file)
+named_source <- system.file("examples", "steps", "named-cases.R",
+                            package = "biocroxytest", mustWork = TRUE)
+file.copy(named_source, source_file, overwrite = TRUE)
+withr::with_dir(pkg, biocroxytest::use_longtests())
 ```
 
-## Run, record and replay
+The case `sample-alignment/memory` asks for `s3, s1` and expects counts
+`31, 11` and conditions `treated, control`. We will run only that case here.
 
-Generate the test and run it by its stable case ID. For this example,
-`load_source` lets roxygen read the source without attaching the temporary
-package. The runner returns the failure as evidence, so the document
-build can verify the expected outcome.
+## Introduce a specific bug
+
+The correct implementation selects columns by name:
+
+```r
+align_samples <- function(x, samples) x[, samples]
+```
+
+Replace it with a membership check. `%in%` keeps columns in their original
+order, so requesting `s3, s1` incorrectly returns `s1, s3`. The following
+block edits only that function line, preserving all the test assertions:
+
+```{r introduce-bug}
+correct <- readLines(source_file)
+broken <- correct
+broken[startsWith(broken, "align_samples <-")] <-
+  "align_samples <- function(x, samples) x[, colnames(x) %in% samples]"
+writeLines(broken, source_file)
+```
+
+## Run and record the failure
 
 ```{r run-failure, message=FALSE}
-invisible(roxygen2::roxygenise(pkg, load_code = roxygen2::load_source))
-id <- "sample-alignment/reordered"
+roxygen2::roxygenise(pkg)
+id <- "sample-alignment/memory"
 failed <- biocroxytest::run_test_plan(pkg, ids = id, seed = 42L)
-stopifnot(identical(failed$cases$status, "failed"))
-cat(failed$cases$detail, "\n", sep = "")
+failed$cases[c("id", "status")]
+cat(failed$cases$detail, "\n")
 ```
 
-Save the record outside the source tree. Replay uses the same source
-revision and the recorded seed. A matching result means the failure
-signature was reproduced. Keep the matching source if you plan to replay
-after editing the package.
+The status should be `failed`. The diagnostic identifies three mismatches:
+sample names, counts and conditions. The backend check still passes.
+`run_test_plan()` returns the report so you can inspect or export failures;
+use `check_test_plan()` when failures must stop a CI job.
 
-```{r replay-failure}
-record_file <- file.path(work, "alignment-failure.rds")
-biocroxytest::write_test_replay(failed, id, record_file)
+```{r verify-failure, include=FALSE}
+stopifnot(identical(failed$cases$status, "failed"))
+```
+
+## Save and replay it before editing the source
+
+```{r replay}
+record_file <- tempfile("alignment-failure-", fileext = ".rds")
+record <- biocroxytest::write_test_replay(failed, id, record_file)
 replayed <- biocroxytest::replay_test_case(record_file, path = pkg)
-stopifnot(isTRUE(replayed$comparison$same_failure))
 replayed$comparison$same_failure
 ```
 
-## Verify the fix
+The result should be `TRUE`: the failure's condition types, messages and
+available source locations match. `record$command` provides a command for
+replaying from the source package's root. The explicit `path = pkg` above
+lets us stay in our current working directory.
 
-Select columns by sample name in the requested order. Keep the same
-assertions and require the case to complete without warnings, as you
-would in CI.
+Keep the record **outside the package directory**, as we do here. Otherwise
+saving it could change the source fingerprint. Export requires a failed case
+and a new output filename. Keep the matching faulty source if you want to
+replay it again after fixing the package.
 
-```{r verify-fix}
-code <- readLines(source_file)
-code[startsWith(code, "align_samples <-")] <-
-  "align_samples <- function(x, samples) x[, samples]"
-writeLines(code, source_file)
+Replay restores the recorded base R seed and selected environment settings.
+Inspect `replayed$comparison$environment_changes` for differences. Matching
+R and dependency versions, external services and backend-specific random
+streams still need to be managed separately.
 
+```{r verify-replay, include=FALSE}
+stopifnot(isTRUE(replayed$comparison$same_failure))
+```
+
+## Fix the function and keep the regression test
+
+Restore name-based selection and run the same case against the corrected
+source. This is a new test run: replay intentionally requires the original
+source revision.
+
+```{r fix, message=FALSE}
+writeLines(correct, source_file)
 fixed <- biocroxytest::run_test_plan(pkg, ids = id, seed = 42L)
 biocroxytest::check_test_plan(fixed, required = id)
 fixed$cases[c("id", "status")]
 ```
 
-Commit the corrected function and its generated regression test in your
-package. In this walkthrough, the source package and replay record are
-temporary and can be removed together.
+The case should now be `completed`, and `check_test_plan()` should return
+without an error. We changed only the function body, so the generated test
+assertions remain current. If you edit a declaration, regenerate it first.
+Commit the corrected source and its generated regression test.
 
-```{r cleanup}
-unlink(work, recursive = TRUE)
+You have now seen the same expected result protect sample order in an ordinary
+test, across two backends, and through failure replay. Continue with
+[verified fixture files](test-fixtures.html), [CI recipes](test-workflows.html),
+or [two historical Bioconductor regressions](bioconductor-regressions.html).
+The [paired-data reduction recipe](reduce-failures.html) is an optional next
+step when the data needed to reproduce a failure are too large.
+
+```{r cleanup, include=FALSE}
+if (isNamespaceLoaded("samplealignment")) unloadNamespace("samplealignment")
+unlink(pkg, recursive = TRUE)
+unlink(record_file)
 ```
-
-See [two historical Bioconductor regressions](bioconductor-regressions.html)
-for reusable checks against older and fixed dependency versions.

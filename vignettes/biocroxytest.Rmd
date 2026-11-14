@@ -1,128 +1,196 @@
 ---
-title: "Introduction to biocroxytest"
+title: "1. Generate and run your first test"
 output: rmarkdown::html_vignette
 description: >
-  Configure roxygen2, generate ordinary and long tests, and run them locally
-  or in CI.
+  Try a small package, generate an ordinary test, see it pass, and catch a
+  sample-ordering bug.
 vignette: >
-  %\VignetteIndexEntry{Introduction to biocroxytest}
+  %\VignetteIndexEntry{1. Generate and run your first test}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-biocroxytest generates standard testthat files from roxygen comments in
-your package's R source. Ordinary tests run with the package check.
-Bioconductor's long-test suite can run separately.
-
-This guide uses the [GitHub development build](https://github.com/xec-cm/biocroxytest/tree/devel).
-
-## Configure your package
-
-Install `testthat` for either suite and `usethis` if you use the
-ordinary setup. From the package root, run the setup for the suites you use.
-
-```{r setup-suites, eval=FALSE}
-usethis::use_testthat()
-biocroxytest::use_longtests()
+```{r options, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE)
 ```
 
-`use_longtests()` sets `RunLongTests: TRUE` in `.BBSoptions`, creates
-`longtests/testthat/` and keeps any existing `longtests/testthat.R`
-runner in the GitHub build. If it needs to create a runner, it uses
-`tests/testthat.R` when available or creates one for the package named
-in `DESCRIPTION`.
+biocroxytest is for developers of R packages. Write testthat checks beside
+an R function, then let roxygen2 generate ordinary test files. You keep
+using testthat to run the tests. You can add a separate Bioconductor long-test
+suite later.
 
-Add `testthat` to `Suggests` and include the roclet in your existing
-`Roxygen` field in `DESCRIPTION`. Install biocroxytest in development and
-CI environments that regenerate tests.
+This tutorial starts with a prepared package, so you can try the workflow
+without configuring your own project. It uses the **GitHub development
+version** of biocroxytest; the Bioconductor release has a separate
+[release guide](https://www.bioconductor.org/packages/release/bioc/vignettes/biocroxytest/inst/doc/biocroxytest.html).
+
+## Install the tutorial dependencies
+
+Run this once in R. Use R 4.4 or newer and a compatible Bioconductor release.
+The optional HDF5 dependency is used in the next tutorial.
+
+```{r installation, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+BiocManager::install(c("SummarizedExperiment", "HDF5Array", "testthat"), update = FALSE)
+BiocManager::install("xec-cm/biocroxytest@devel", update = FALSE)
+```
+
+## Copy the example package
+
+Run the following blocks in order in an R session. All operations use `pkg`
+explicitly, so you do not need to change the working directory. The copy lives
+in a temporary directory and can be discarded after the tutorial.
+
+```{r copy-package}
+template <- system.file("examples", "samplealignment", package = "biocroxytest",
+                        mustWork = TRUE)
+pkg <- tempfile("samplealignment-")
+fs::dir_copy(template, pkg)
+```
+
+The important files in the copy are:
+
+```text
+samplealignment/
+  DESCRIPTION                 Package dependencies and roxygen configuration
+  R/align-samples.R            Function and its test declaration
+  R/example-experiment.R      Three samples with known measurements
+  tests/testthat.R             Standard testthat runner
+```
+
+You can also inspect the [complete example package on GitHub](https://github.com/xec-cm/biocroxytest/tree/devel/inst/examples/samplealignment).
+To keep your work, use a new persistent directory instead of `tempfile()`.
+
+## Read the function and its test
+
+Our function selects samples from a `SummarizedExperiment`. Asking for `s3`
+and then `s1` must return both measurements and metadata in that order.
+The input contains one gene:
+
+| Sample | Count | Condition |
+| --- | ---: | --- |
+| s1 | 11 | control |
+| s2 | 21 | control |
+| s3 | 31 | treated |
+
+Open `R/align-samples.R` in the copy. Its complete contents are:
+
+```{r first-source, code=readLines(file.path(pkg, "R", "align-samples.R")), eval=FALSE}
+```
+
+`example_experiment()` constructs the small object above. The three
+`expect_identical()` calls check sample order, counts and conditions against
+explicit expected values. `@tests` tells biocroxytest to put these checks in
+an ordinary test. A **roclet** is the roxygen2 extension that does that writing.
+
+## Generate the test
+
+The example's `DESCRIPTION` already contains this configuration:
 
 ```text
 Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))
 ```
 
-For a long-test-only setup, use `biocroxytest::longtests_roclet` in place
-of `biocroxytest::tests_roclet`.
+The bundled package is already configured. Generate its test and refresh
+the function documentation together:
 
-## Generate and run tests
-
-Add `@tests` or `@longtests` to a roxygen block. Put fast checks in
-`@tests` and reserve `@longtests` for checks that need a separate run.
-
-```{r source-with-tests, eval=FALSE}
-#' Increment an integer vector
-#'
-#' @param x An integer vector.
-#' @return An integer vector.
-#' @export
-#' @tests
-#' expect_identical(increment(2L), 3L)
-#' @longtests
-#' x <- seq_len(10000L)
-#' expect_identical(increment(x), x + 1L)
-increment <- function(x) x + 1L
+```{r generate, message=FALSE}
+roxygen2::roxygenise(pkg)
 ```
 
-If you put this block in `R/increment.R`, run `roxygen2::roxygenise()`
-and commit the generated files.
+The test is written to
+`tests/testthat/test-roxytest-tests-align-samples.R`. It is an ordinary
+testthat file; the `roxytest` filename prefix preserves compatibility with
+existing test and snapshot paths.
 
-| Suite | Generated file | Check command |
-| --- | --- | --- |
-| Ordinary | `tests/testthat/test-roxytest-tests-increment.R` | `R CMD check` |
-| Long | `longtests/testthat/test-biocroxytest-longtests-increment.R` | `R CMD check --test-dir=longtests` |
-
-Pass the built source tarball to either check command. Each suite loads
-its own testthat helpers. Install the dependencies declared by the
-consumer package, including any packages used by its test code. The
-generated tests run without biocroxytest.
-
-## Test documented examples
-
-Use `@testexamples` with the unified roclet to assert on values from the
-topic's examples. This is an alternative block for `R/increment.R`.
-
-```{r testexamples-tag, eval=FALSE}
-#' Increment an integer vector
-#'
-#' @param x An integer vector.
-#' @return An integer vector.
-#' @export
-#' @examples
-#' value <- increment(2L)
-#' @testexamples
-#' expect_identical(value, 3L)
-increment <- function(x) x + 1L
+```{r generated-source, code=readLines(file.path(pkg, "tests", "testthat", "test-roxytest-tests-align-samples.R")), eval=FALSE}
 ```
 
-The generated ordinary test runs direct examples before their assertions.
-It omits `\dontrun{}` and executes `\dontshow{}` and `\donttest{}`.
-An `@examplesIf` condition runs in sequence and skips the test if false.
-Rd platform directives are resolved during generation. Inherited
-examples, templates and Rd `\Sexpr{}` expressions are outside this
-workflow.
+Edit the declaration in `R/align-samples.R` and regenerate when changing
+the test. Commit the generated file alongside the source.
 
-## Migrate from roxytest
+## Run it and read the result
 
-In a disposable copy, replace `roxytest::testthat_roclet` and any
-`biocroxytest::longtests_roclet` with `biocroxytest::tests_roclet`.
-Regenerate with the default `clean = FALSE`, inspect the diff, and run
-both configured suites. Existing roxytest filename prefixes are retained
-and generated ownership headers are updated. For shared `@rdname`
-topics, tags follow their source files. Review snapshot paths and test
-descriptions if a test moves.
+```{r first-run, message=FALSE}
+result <- testthat::test_local(pkg, reporter = "silent")
+as.data.frame(result)[c("failed", "error", "passed")]
+```
 
-## Check generated files in CI
+There should be **three passing expectations, zero failures and no error**.
+For interactive progress, omit `reporter = "silent"`. In your own package,
+`devtools::test()` from its root runs the ordinary suite too.
 
-Run this command from the package root after installing its development
-dependencies.
+```{r verify-first-run, include=FALSE}
+summary <- as.data.frame(result)
+stopifnot(sum(summary$passed) == 3L, sum(summary$failed) == 0L, !any(summary$error))
+```
+
+## See the test catch a bug
+
+A tempting implementation uses `%in%` to select matching columns. It finds
+the correct samples but retains their original order, returning `s1, s3`.
+Change the function's final line to the following. This R block performs
+the edit for you:
+
+```{r introduce-bug}
+source_file <- file.path(pkg, "R", "align-samples.R")
+correct <- readLines(source_file)
+broken <- correct
+broken[startsWith(broken, "align_samples <-")] <-
+  "align_samples <- function(x, samples) x[, colnames(x) %in% samples]"
+writeLines(broken, source_file)
+```
+
+The assertions have not changed, so their generated file is still current.
+Run them again, keeping the result so we can inspect the expected failure:
+
+```{r catch-bug, message=FALSE}
+result <- testthat::test_local(pkg, reporter = "silent", stop_on_failure = FALSE)
+as.data.frame(result)[c("failed", "error", "passed")]
+```
+
+All three expectations now fail: the order is reversed, along with the
+counts and conditions. `stop_on_failure = FALSE` is useful for this deliberate
+failure; normally keep the default so test failures stop the check.
+
+```{r verify-bug, include=FALSE}
+summary <- as.data.frame(result)
+stopifnot(sum(summary$failed) == 3L, !any(summary$error))
+```
+
+Restore the correct function and require a passing run:
+
+```{r restore, message=FALSE}
+writeLines(correct, source_file)
+result <- testthat::test_local(pkg, reporter = "silent")
+as.data.frame(result)[c("failed", "error", "passed")]
+```
+
+## Apply this to your own package
+
+From your package root, set up ordinary tests with `usethis::use_testthat()`
+(install usethis first if needed). Add the roclet above to the existing
+`Roxygen` configuration, retaining any other settings. Add `@tests` beside a
+function, regenerate, and run `devtools::test()`.
+
+Declare test dependencies in `Suggests`. Install biocroxytest wherever you
+regenerate tests; the generated ordinary tests do not need it at runtime.
+For package checks, build the source and pass the resulting tarball to the
+check command, for example in a terminal:
 
 ```sh
-Rscript --vanilla -e 'biocroxytest::check_generated_tests()'
+R CMD build samplealignment
+R CMD check --no-manual samplealignment_0.0.1.tar.gz
 ```
 
-The check regenerates files in a temporary copy and reports missing,
-changed or obsolete generated output. Use
-`biocroxytest::generated_test_inventory()` to list the generated paths,
-sources and suites.
+Here `samplealignment` is a persistent copy of the example package in your
+terminal's working directory. Substitute your own directory and package version.
 
-For shared assertions across suites and failure analysis, see
-[Named cases, fixtures and failure replay](named-cases.html).
+**Next:** [share the same checks between memory and HDF5](named-cases.html).
+The next tutorial starts with a fresh copy, so you can also follow it independently.
+
+```{r cleanup, include=FALSE}
+unloadNamespace("samplealignment")
+unlink(pkg, recursive = TRUE)
+```

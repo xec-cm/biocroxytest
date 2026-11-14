@@ -1,0 +1,14 @@
+Package: samplealignment
+Title: A Small Package for the biocroxytest Tutorials
+Version: 0.0.1
+Authors@R: person("Example", "Author", email = "example@example.org",
+    role = c("aut", "cre"))
+Description: Select samples in a requested order while retaining their
+    measurements and metadata. Used to demonstrate generated tests.
+License: GPL (>= 3)
+Encoding: UTF-8
+Imports: SummarizedExperiment
+Suggests: testthat (>= 3.3.0), HDF5Array, withr, fs
+Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1

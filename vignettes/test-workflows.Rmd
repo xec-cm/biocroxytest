@@ -1,0 +1,310 @@
+---
+title: "CI, reports and existing test workflows"
+output: rmarkdown::html_vignette
+description: >
+  Require named cases in CI, compare saved reports, check generated files,
+  and adapt an existing roxygen2 or roxytest workflow.
+vignette: >
+  %\VignetteIndexEntry{CI, reports and existing test workflows}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r workflow-options, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE)
+```
+
+These recipes use the [GitHub development build](https://github.com/xec-cm/biocroxytest/tree/devel).
+Start with [your first test](biocroxytest.html) and
+[cases in memory and HDF5](named-cases.html) if you have not generated tests
+yet. The first two recipes below run the same sample-alignment cases;
+the later sections are configuration reference for your own package.
+
+## Prepare the example package
+
+Install SummarizedExperiment, HDF5Array and testthat 3.3.0 or newer, as in
+the named-cases tutorial. This makes a fresh copy of the bundled package
+and replaces its first test with the two named cases. All paths point to
+the temporary copy, so the installed example stays unchanged.
+
+```{r prepare-workflows, message=FALSE}
+template <- system.file("examples", "samplealignment", package = "biocroxytest", mustWork = TRUE)
+pkg <- tempfile("samplealignment-")
+fs::dir_copy(template, pkg)
+declaration <- system.file("examples", "steps", "named-cases.R", package = "biocroxytest", mustWork = TRUE)
+file.copy(declaration, file.path(pkg, "R", "align-samples.R"), overwrite = TRUE)
+withr::with_dir(pkg, biocroxytest::use_longtests())
+roxygen2::roxygenise(pkg)
+```
+
+## Require particular cases in CI
+
+A successful suite can contain skipped tests. If a CI job exists to test
+HDF5, explicitly require the HDF5 case to complete. Choose the required
+IDs yourself: deriving them from the report would overlook a case that
+was accidentally removed.
+
+```{r require-cases}
+required <- c("sample-alignment/memory", "sample-alignment/hdf5")
+evidence <- biocroxytest::run_test_plan(pkg, ids = required, seed = 42L, timeout = 60)
+biocroxytest::check_test_plan(evidence, required)
+evidence$cases[c("id", "status", "warnings")]
+```
+
+Both rows should show `completed` and zero warnings. `check_test_plan()`
+returns silently when that policy is met; it errors otherwise. A required
+ID absent from the declarations is rejected by `run_test_plan()` itself.
+These errors give a nonzero exit status when left uncaught in `Rscript`.
+
+In your CI checkout, create `tools/` if needed, save the following as
+`tools/check-cases.R`, and run `Rscript --vanilla tools/check-cases.R`
+**from the package root**, after installing the package's development
+and test dependencies. Replace the IDs with the cases that this job
+must exercise.
+
+```{r ci-script, eval=FALSE}
+required <- c("sample-alignment/memory", "sample-alignment/hdf5")
+evidence <- biocroxytest::run_test_plan(ids = required, seed = 42L, timeout = 60)
+biocroxytest::check_test_plan(evidence, required)
+```
+
+For example, a dependency-specific job should not accept a case that
+called `skip_if_not_installed()`. A pilot using a DESeq2 contrast test in
+[dar at `27c4da2`](https://github.com/MicrobialGenomics-IrsicaixaOrg/dar/blob/27c4da2/tests/testthat/test-model-adapters.R)
+passed with DESeq2 present and rejected a deliberate skip that simulated
+its absence.
+
+Use `allow_warnings = TRUE` only when your policy permits completed cases
+with recorded warnings. Warnings asserted with `expect_warning()` are
+handled by the test and do not count. Older reports without warning
+counts need a fresh run to satisfy the default policy.
+
+### Interpret an execution report
+
+Each named case runs in a fresh R session and temporary package copy.
+The report records its duration, diagnostics, fixture checks, source
+fingerprint and observed R environment.
+
+| Status | Meaning | Meets the required-case policy? |
+| --- | --- | --- |
+| `completed` | Reached the end with a passing expectation and no skips | Yes, with zero recorded warnings by default |
+| `failed` | A test expectation or test code failed | No |
+| `skipped` | The case skipped before recording a pass | No |
+| `incomplete` | Execution did not establish completion | No |
+| `missing` | A generated test or its result was absent | No |
+
+Examples of `incomplete` include stale generated code, an unavailable
+required fixture, an early return, a partial skip and a timeout. The
+`detail` column explains the reason. `timeout` limits each isolated
+process in seconds, including package loading and suite hooks. Copying
+inputs and preparing fixtures happen before that limit starts. After a
+timeout, the plan continues with the remaining cases.
+
+Keep the normal full-suite checks too: running cases individually does
+not exercise custom suite runners or dependencies between tests in one
+session.
+
+## Save and compare reports
+
+The following example makes **two runs on this machine**, with the same
+source, fixtures, seed and IDs. It demonstrates the comparison procedure;
+it is not evidence of portability across platforms. Reports are saved
+outside the package tree so that saving them does not change the source
+fingerprint.
+
+```{r save-reports}
+reports <- tempfile("case-reports-")
+dir.create(reports)
+saveRDS(evidence, file.path(reports, "left.rds"))
+second <- biocroxytest::run_test_plan(pkg, ids = required, seed = 42L, timeout = 60)
+biocroxytest::check_test_plan(second, required)
+saveRDS(second, file.path(reports, "right.rds"))
+```
+
+For a real comparison, run the same command in each CI environment and
+download each saved report. Use those files in place of `left.rds` and
+`right.rds` below. Match the cases to an independently chosen list of
+expected IDs, rather than only comparing IDs present in both reports.
+
+```{r compare-reports}
+left <- readRDS(file.path(reports, "left.rds"))
+right <- readRDS(file.path(reports, "right.rds"))
+expected <- c("sample-alignment/memory", "sample-alignment/hdf5")
+
+summarize_run <- function(report) {
+  cases <- report$cases[match(expected, report$cases$id), ]
+  warnings <- cases$warnings
+  if (is.null(warnings)) warnings <- rep(NA_integer_, length(expected))
+  context <- function(field) {
+    vapply(expected, function(id) {
+      value <- report$environments[[id]][[field]]
+      if (is.null(value)) NA_character_ else value
+    }, character(1))
+  }
+  data.frame(
+    id = expected, status = cases$status, warnings = warnings,
+    r_version = context("r_version"), platform = context("platform")
+  )
+}
+
+comparison <- merge(summarize_run(left), summarize_run(right),
+                    by = "id", suffixes = c(".left", ".right"), all = TRUE)
+comparison[c("id", "status.left", "status.right", "warnings.left", "warnings.right")]
+```
+
+Both cases should be `completed` in both runs. An `NA` status means an
+expected ID has no row in that report, including when it is absent from
+both. The status `missing` means the report contains the ID but its test
+or result was missing. An `NA` warning count can also identify an older
+report that did not record warnings.
+
+Inspect the context before interpreting differences:
+
+```{r compare-context}
+comparison[c("id", "r_version.left", "r_version.right", "platform.left", "platform.right")]
+c(left = left$revision, right = right$revision)
+```
+
+Record the source commit and fixture checksums with each CI job. The
+revision hash includes R's serialization header, so identical inputs can
+produce different hashes under different R versions. For a case ID, use
+`report$environments[[id]]$packages` to inspect loaded package versions
+and `report$fixtures[[id]]` for declared fixture checks. An installed or
+loaded dependency alone does not establish which backend a test used;
+assert its actual backing class in the test, as in the HDF5 tutorial.
+
+## Review changes to the declared cases
+
+A plan comparison answers a different question from comparing run reports:
+what changed in the declarations? Here we move the HDF5 case into the ordinary
+suite while keeping its ID and assertions.
+
+```{r compare-plans}
+before <- biocroxytest::test_case_plan(pkg)
+source_file <- file.path(pkg, "R", "align-samples.R")
+original <- readLines(source_file)
+moved <- sub('hdf5 = list(suite = "longtests"', 'hdf5 = list(suite = "tests"',
+              original, fixed = TRUE)
+writeLines(moved, source_file)
+changes <- biocroxytest::compare_test_plans(before, biocroxytest::test_case_plan(pkg))
+changes[c("id", "status", "before_suite", "after_suite")]
+```
+
+The result should identify `sample-alignment/hdf5` as `moved`, from
+`longtests` to `tests`. The comparison does not run tests. It also reports
+added, removed and changed cases; a renamed ID appears as a removal and
+an addition. Restore the original source for the remaining recipes:
+
+```{r restore-plan}
+stopifnot(identical(changes$id, "sample-alignment/hdf5"),
+          identical(changes$status, "moved"))
+writeLines(original, source_file)
+```
+
+If you keep a declaration change, regenerate its tests before execution.
+
+## Check that generated files are current
+
+Commit generated tests with their source declarations. In CI, run this
+command from the package root after installing development dependencies:
+
+```sh
+Rscript --vanilla -e 'biocroxytest::check_generated_tests()'
+```
+
+The check regenerates tests in a temporary copy and fails if owned
+outputs are missing, changed or obsolete. It leaves your checkout in
+place. To resolve a failure, run `roxygen2::roxygenise()` locally, inspect
+the generated diff, and commit the intended changes. Use
+`biocroxytest::generated_test_inventory()` to list files, source paths
+and suites. This checks generation; run the tests themselves as well.
+
+## Include extra files in isolated runs
+
+Most packages need no additional configuration. The copy used by named
+case execution and generated-file checks contains the usual package
+inputs, both test suites, their helpers and local fixtures. The revision
+fingerprint covers the copied paths and contents.
+
+If your tests or roclet read files from another directory, add each path
+to `DESCRIPTION`. For example, if `dev/example-code.R` and
+`reference-data/` exist in your package:
+
+```text
+Config/biocroxytest/inputs: dev/example-code.R
+    reference-data
+```
+
+Paths must be relative to the package root and refer to ordinary files
+or directories. This can retain build-excluded development inputs;
+excluded R source files still stay excluded.
+
+The default manifest includes `DESCRIPTION`, `NAMESPACE`, `.BBSoptions`,
+`.Rbuildignore`, `.Rinstignore`, license and build scripts, and the
+standard directories `R`, `src`, `data`, `inst`, `man`, `vignettes`,
+`demo`, `po`, `tools` and `exec`. It also retains roxygen templates in
+`man-roxygen`, tooling in `man/roxygen`, and both test suites in full.
+Git metadata and standard editor/native build artifacts are omitted.
+Build-ignore patterns are matched without regard to case.
+
+Remove newly excluded R files from any `Collate` fields before checking
+generated tests or installing the package. Direct calls to
+`roxygen2::roxygenise()` use its configured loader, which can load ignored
+R files before the roclet selects sources. Older replay records retain
+their original source-selection and full-checkout fingerprint rules.
+
+## Test values from documented examples
+
+`@testexamples` lets the ordinary suite check values produced by a
+topic's `@examples`. In the example package, this complete block can
+replace `R/align-samples.R`; it replaces that file's named cases too.
+Regenerate tests and run the ordinary suite after the edit.
+
+```{r documented-examples, eval=FALSE}
+#' Select samples in the requested order
+#'
+#' @param x A SummarizedExperiment.
+#' @param samples Sample names in the requested order.
+#' @return A SummarizedExperiment with the selected samples.
+#' @export
+#' @examples
+#' selected <- align_samples(example_experiment(), c("s3", "s1"))
+#' @testexamples
+#' expect_identical(colnames(selected), c("s3", "s1"))
+#' expect_identical(selected$condition, c("treated", "control"))
+align_samples <- function(x, samples) x[, samples]
+```
+
+The generated ordinary test runs direct examples before their assertions.
+It omits `\dontrun{}` and executes `\dontshow{}` and `\donttest{}`.
+An `@examplesIf` condition runs in sequence and skips the test if false.
+Rd platform directives are resolved during generation. Inherited
+examples, templates and Rd `\Sexpr{}` expressions are outside this
+workflow.
+
+## Migrate from roxytest
+
+Start in a disposable copy of your package with its current tests passing.
+In the `Roxygen` field of `DESCRIPTION`, replace
+`roxytest::testthat_roclet` and any `biocroxytest::longtests_roclet` with
+`biocroxytest::tests_roclet`, retaining your other roclets. Use one test
+generator per destination.
+
+Regenerate with the default `clean = FALSE`, inspect the diff, and run
+both configured suites. Ordinary roxytest filename prefixes are retained
+and generated ownership headers are updated. For shared `@rdname`
+topics, tags follow their source files. Review snapshot paths and test
+descriptions if a test moves. Keep your existing helpers, custom runners
+and manual tests.
+
+## Remove the temporary example
+
+When you have finished inspecting the reports, remove only the paths
+created by this page:
+
+```{r cleanup-workflows}
+if (isNamespaceLoaded("samplealignment")) unloadNamespace("samplealignment")
+unlink(c(pkg, reports), recursive = TRUE)
+```
+
+For a failing case, continue with [failure replay](replay-walkthrough.html).

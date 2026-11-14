@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Reorganize the documentation into executable sample-alignment tutorials
+  and focused recipes, with a complete example package (#52).
+
 * Document how to share checked package fixtures between suites and compare
   named case results across environments using existing APIs (#42, #43).
 
