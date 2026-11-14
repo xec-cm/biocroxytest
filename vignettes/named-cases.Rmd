@@ -226,7 +226,9 @@ comparison
 c(left = left$revision, right = right$revision)
 ```
 
-Check the revision hashes before interpreting the differences.
+Record the source commit and fixture checksums for each job. The revision
+hash includes R's serialization header, so identical inputs can produce
+different hashes when the jobs use different R versions.
 For a particular ID, look in `report$environments[[id]]$packages` for
 loaded package versions and in `report$fixtures[[id]]` for declared
 fixture checks. A dependency version describes the run environment.
