@@ -24,6 +24,7 @@ test_that("required local fixtures are checked before loading the case", {
   ))
   on.exit(unlink(pkg, recursive = TRUE, expand = FALSE), add = TRUE)
   local_file <- file.path(pkg, "longtests", "testthat", "data.tsv")
+  writeLines("^LONGTESTS/TESTTHAT/DATA[.]TSV$", file.path(pkg, ".Rbuildignore"))
 
   plan <- test_case_plan(pkg)
   expect_identical(plan$fixture[[1]]$data$md5, checksum)
@@ -47,6 +48,7 @@ test_that("required local fixtures are checked before loading the case", {
   mismatch <- run_test_plan(pkg)
   expect_identical(mismatch$cases$status, "incomplete")
   expect_identical(mismatch$fixtures[["inputs/sample"]]$status, "mismatch")
+  expect_false(identical(mismatch$revision, verified$revision))
   expect_identical(mismatch$fixtures[["inputs/sample"]]$observed_md5, unname(tools::md5sum(local_file)))
 })
 

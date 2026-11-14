@@ -100,6 +100,29 @@ assertion and no skips. The other states are `failed`, `skipped`,
 `incomplete` and `missing`. For example, stale generated code or a
 skip after a passing assertion is incomplete.
 
+The copy and its revision fingerprint use the same input manifest. It
+includes `DESCRIPTION`, `NAMESPACE`, `.BBSoptions`, `.Rbuildignore`,
+`.Rinstignore`, license and build scripts, and the standard package
+directories `R`, `src`, `data`, `inst`, `man`, `vignettes`, `demo`, `po`,
+`tools` and `exec`. Build ignore patterns are matched without regard to
+case. Both test suites are retained in full, including helpers and local
+fixtures used only during development. Git metadata is excluded.
+
+If a test or roclet uses inputs outside those paths, declare each extra
+file or directory on its own line in the source package's `DESCRIPTION`.
+For example, this includes an example script and a directory of reference
+data that would otherwise be omitted.
+
+```text
+Config/biocroxytest/inputs: dev/example-code.R
+    reference-data
+```
+
+Use existing paths relative to the package root. Retained paths must be
+ordinary files or directories. A declaration can retain build-excluded
+development inputs, while excluded R sources stay excluded. Older
+replay records continue to use the full-checkout fingerprint.
+
 Set `timeout` in seconds to limit each isolated R process. A timeout
 leaves the case incomplete and the plan continues. The limit includes
 package loading and suite hooks. Fixture preparation happens first.

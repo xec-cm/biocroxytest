@@ -47,7 +47,7 @@ checksums, availability and diagnostics, keyed by case ID. A case with
 an unavailable required fixture is \code{incomplete} and does not start.
 \code{replay} holds the seed, RNG kind and selected environment settings for
 executed cases, keyed by case ID. Use \link[=write_test_replay]{write_test_replay()}
-to export a failure.
+to export a failure. \code{revision_format} identifies the manifest rules.
 }
 \description{
 Run the selected \code{\link[=test_case_plan]{test_case_plan()}} cases using their generated files and
@@ -60,9 +60,9 @@ other cases in the same session.
 }
 \details{
 Results are tied to a revision fingerprint of the copied paths and file
-contents. Git metadata is excluded. Package code, helpers and generated
-tests are part of the fingerprint. The checkout must meet the same copy
-requirements as \code{\link[=check_generated_tests]{check_generated_tests()}}.
+contents. The manifest includes package code, both test suites, local
+fixtures and declared extra inputs. See \code{\link[=check_generated_tests]{check_generated_tests()}} and
+\code{vignette("named-cases")} for the copy rules.
 
 A case is \code{completed} when it reaches the end and records a passing
 expectation without skips. A failed expectation or test error gives

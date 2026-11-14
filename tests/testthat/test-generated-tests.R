@@ -110,6 +110,57 @@ test_that("freshness checks regenerate in a fresh process and leave the source u
   expect_identical(getwd(), cwd)
 })
 
+test_that("excluded source files are obsolete for both roclets", {
+  for (roclet in c("tests_roclet", "longtests_roclet")) {
+    pkg <- new_generated_test_fixture(sprintf('"biocroxytest::%s"', roclet))
+    withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+    writeLines(c(
+      "#' @tests expect_true(TRUE)",
+      "#' @longtests expect_true(TRUE)",
+      "ignored <- function() TRUE"
+    ), file.path(pkg, "R", "ignored.R"))
+    roxygenise_fixture(pkg)
+    outputs <- generated_test_inventory(pkg)
+    expect_gt(nrow(outputs), 0L)
+    writeLines("^r/IGNORED[.]r$", file.path(pkg, ".Rbuildignore"))
+    stale <- expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
+    expect_identical(stale$changes$path, outputs$path)
+    expect_true(all(stale$changes$status == "obsolete"))
+    roxygenise_fixture(pkg, clean = TRUE)
+    expect_equal(nrow(generated_test_inventory(pkg)), 0L)
+    expect_true(file.exists(file.path(pkg, "R", "ignored.R")))
+    expect_true(check_generated_fixture(pkg))
+  }
+})
+
+test_that("freshness keeps declared development inputs and skips unrelated links", {
+  pkg <- new_generated_test_fixture(
+    'c("rd", "biocroxytest::tests_roclet")'
+  )
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  dir.create(file.path(pkg, "dev"))
+  cat("Config/biocroxytest/inputs: dev/example code.R\n",
+      file = file.path(pkg, "DESCRIPTION"), append = TRUE)
+  script <- file.path(pkg, "dev", "example code.R")
+  writeLines("x <- 1L", script)
+  writeLines(c(
+    "#' Example tests",
+    "#' @example dev/example code.R",
+    "#' @testexamples expect_identical(x, 1L)",
+    "answer <- function() 42L"
+  ), file.path(pkg, "R", "answer.R"))
+  roxygenise_fixture(pkg)
+  link <- file.path(pkg, "dev", "unused")
+  if (.Platform$OS.type != "windows") {
+    expect_true(file.symlink(script, link))
+  }
+  expect_true(check_generated_fixture(pkg))
+  fingerprint <- run_test_plan(pkg)$revision
+  writeLines("x <- 2L", script)
+  expect_false(identical(run_test_plan(pkg)$revision, fingerprint))
+  expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
+})
+
 test_that("freshness normalizes line endings and detects other byte differences", {
   pkg <- new_generated_test_fixture(
     roclets = 'deparse(quote(getExportedValue("biocroxytest", "longtests_roclet")))'

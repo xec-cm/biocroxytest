@@ -18,7 +18,7 @@ check_consumer <- function() {
     "Config/testthat/edition: 3",
     'Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))'
   ), file.path(consumer, "DESCRIPTION"))
-  writeLines("^\\.BBSoptions$", file.path(consumer, ".Rbuildignore"))
+  writeLines(c("^\\.BBSoptions$", "^r/EXCLUDED[.]r$"), file.path(consumer, ".Rbuildignore"))
   writeLines(c(
     "library(testthat)",
     "library(biocroxytestconsumer)",
@@ -31,6 +31,11 @@ check_consumer <- function() {
              file.path(consumer, "tests", "testthat", "helper-input.R"))
   writeLines("suite_input <- function() 5L",
              file.path(consumer, "longtests", "testthat", "helper-input.R"))
+  writeLines(c(
+    "#' @tests stop('Excluded code reached the ordinary suite')",
+    "#' @longtests stop('Excluded code reached the long suite')",
+    "excluded <- function() TRUE"
+  ), file.path(consumer, "R", "excluded.R"))
   roxygen2::roxygenise(consumer)
 
   # Stage only the consumer's test dependency and its required dependencies.
@@ -64,6 +69,8 @@ check_consumer <- function() {
                               fail_on_status = TRUE)
     tarball <- file.path(scratch, "biocroxytestconsumer_0.0.1.tar.gz")
     stopifnot(build$status == 0L, file.exists(tarball))
+    contents <- utils::untar(tarball, list = TRUE)
+    stopifnot(!any(endsWith(contents, "excluded.R")))
 
     for (suite in c("tests", "longtests")) {
       work <- file.path(scratch, paste(suite, broken, sep = "-"))

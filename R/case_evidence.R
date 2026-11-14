@@ -9,9 +9,9 @@
 #' other cases in the same session.
 #'
 #' Results are tied to a revision fingerprint of the copied paths and file
-#' contents. Git metadata is excluded. Package code, helpers and generated
-#' tests are part of the fingerprint. The checkout must meet the same copy
-#' requirements as [check_generated_tests()].
+#' contents. The manifest includes package code, both test suites, local
+#' fixtures and declared extra inputs. See [check_generated_tests()] and
+#' `vignette("named-cases")` for the copy rules.
 #'
 #' A case is `completed` when it reaches the end and records a passing
 #' expectation without skips. A failed expectation or test error gives
@@ -47,7 +47,7 @@
 #'   an unavailable required fixture is `incomplete` and does not start.
 #'   `replay` holds the seed, RNG kind and selected environment settings for
 #'   executed cases, keyed by case ID. Use \link[=write_test_replay]{write_test_replay()}
-#'   to export a failure.
+#'   to export a failure. `revision_format` identifies the manifest rules.
 #' @seealso \link[=check_test_plan]{check_test_plan()} to require completed cases in CI.
 #' @export
 #' @examples
@@ -78,9 +78,12 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   path <- test_package_path(path)
   snapshot <- test_package_copy_path(path)
   on.exit(unlink(snapshot, recursive = TRUE, expand = FALSE), add = TRUE)
-  copy_test_package(path, snapshot)
+  revision_format <- if (is.null(replay)) 2L else replay$format
+  manifest <- test_package_manifest(path, legacy = revision_format == 1L)
+  copy_test_package(path, snapshot, manifest)
 
-  revision <- if (is.null(replay)) NULL else verify_replay_revision(snapshot, replay)
+  revision <- test_plan_revision(snapshot, manifest)
+  if (!is.null(replay)) { verify_replay_revision(revision, replay) }
   plan <- test_case_plan(snapshot)
   fields <- c("id", "suite", "source", "path")
   if (!is.null(replay)) {
@@ -107,9 +110,6 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
     fixture_cache <- resolve_fixture_cache(fixture_cache, path)
   }
 
-  if (is.null(revision)) {
-    revision <- test_plan_revision(snapshot)
-  }
   cases_df <- plan[fields]
   cases_df$status <- rep("missing", nrow(cases_df))
   cases_df$duration <- rep(NA_real_, nrow(cases_df))
@@ -124,7 +124,7 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   }
   for (i in seq_len(nrow(plan))) {
     evidence <- record_test_case(
-      snapshot, plan[i, ], download_fixtures, fixture_cache, seed, timeout, replay
+      snapshot, manifest, plan[i, ], download_fixtures, fixture_cache, seed, timeout, replay
     )
     cases_df$status[i] <- evidence$status
     cases_df$duration[i] <- evidence$duration
@@ -146,29 +146,28 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   rownames(cases_df) <- NULL
   list(
     revision = revision, cases = cases_df, environments = environments,
-    fixtures = fixtures, replay = replay_context
+    fixtures = fixtures, replay = replay_context, revision_format = revision_format
   )
 }
 
-test_plan_revision <- function(path) {
-  files <- sort(as.character(fs::dir_ls(path, all = TRUE, recurse = TRUE)), method = "radix")
-  regular <- !dir.exists(files)
-  manifest <- list(
-    paths = as.character(fs::path_rel(files, start = path)),
-    contents = unname(tools::md5sum(files[regular])),
+test_plan_revision <- function(path, manifest) {
+  regular <- !manifest$directory
+  input <- list(
+    paths = manifest$path,
+    contents = unname(tools::md5sum(file.path(path, manifest$path[regular]))),
     regular = regular
   )
-  if (anyNA(manifest$contents)) {
+  if (anyNA(input$contents)) {
     cli::cli_abort("Could not fingerprint the package files.", call = NULL)
   }
 
   manifest_file <- tempfile("biocroxytest-manifest-")
   on.exit(unlink(manifest_file, expand = FALSE), add = TRUE)
-  writeBin(serialize(manifest, NULL, version = 2L), manifest_file)
+  writeBin(serialize(input, NULL, version = 2L), manifest_file)
   unname(tools::md5sum(manifest_file))
 }
 
-record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, seed,
+record_test_case <- function(snapshot, manifest, case, download_fixtures, fixture_cache, seed,
                              timeout, replay) {
   file <- file.path(snapshot, case$path)
   if (!file.exists(file)) {
@@ -179,7 +178,7 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
     return(list(status = "incomplete", duration = NA_real_, detail = location))
   }
 
-  prepared <- local_test_case(snapshot, case, download_fixtures, fixture_cache)
+  prepared <- local_test_case(snapshot, case, download_fixtures, fixture_cache, manifest)
   fixtures <- prepared$fixtures
   fixture_evidence <- fixtures[, names(fixtures) != "path"]
   if (!is.null(replay) && !same_replay_fixtures(fixture_evidence, replay$fixtures)) {

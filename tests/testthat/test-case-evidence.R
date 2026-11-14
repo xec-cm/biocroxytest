@@ -116,10 +116,18 @@ test_that("evidence selects exact IDs and fingerprints source and helper changes
   expect_identical(second$cases$status, "completed")
   expect_identical(evidence_package_contents(pkg), before)
 
+  writeLines("unrelated note", file.path(pkg, "notes.txt"))
+  writeLines("^INST/CACHE$", file.path(pkg, ".Rbuildignore"))
+  dir.create(file.path(pkg, "inst", "cache"), recursive = TRUE)
+  baseline <- run_test_plan(pkg, ids = character())
+  writeLines("unrelated results", file.path(pkg, "inst", "cache", "output.tsv"))
+  writeLines("edited note", file.path(pkg, "notes.txt"))
+  expect_identical(run_test_plan(pkg, ids = character())$revision, baseline$revision)
+
   writeLines(evidence_revision_source("43L"), file.path(pkg, "R", "answer.R"))
   source_changed <- run_test_plan(pkg, ids = "revision/selected")
   expect_identical(source_changed$cases$status, "completed")
-  expect_false(identical(source_changed$revision, first$revision))
+  expect_false(identical(source_changed$revision, baseline$revision))
   writeLines("case_value <- function() answer() + 1L",
              file.path(pkg, "tests", "testthat", "helper-value.R"))
   helper_changed <- run_test_plan(pkg, ids = "revision/selected")

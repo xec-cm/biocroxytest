@@ -9,10 +9,12 @@
 #' roxygen configuration and a fresh R session. It checks both suites for
 #' [tests_roclet()] or only the long suite for [longtests_roclet()]. Install
 #' the package's development dependencies before running the check. The
-#' checkout is left in place and `.git` is excluded from the copy. Use a
-#' checkout without symbolic links, junctions, or special files, apart from
-#' excluded Git metadata. Roxygen loads package code, so check packages
-#' whose code you trust. LF and CRLF are equivalent in generated files.
+#' checkout is left in place. The copy includes package inputs and the two
+#' test suites. See `vignette("named-cases")` for the input roots and how to
+#' declare additional files with `Config/biocroxytest/inputs`. Retained paths
+#' must be ordinary files and directories. Roxygen loads package code, so
+#' check packages whose code you trust. LF and CRLF are equivalent in
+#' generated files.
 #'
 #' @param path Path to the package root.
 #' @return `generated_test_inventory()` returns a data frame with `suite`,
@@ -112,26 +114,6 @@ collect_test_inventory <- function(path, suites = c("tests", "longtests")) {
   })
   do.call(rbind, c(list(data.frame(suite = character(), source = character(),
                                    path = character())), rows))
-}
-
-copy_test_package <- function(from, to) {
-  fs::dir_create(to)
-  entries <- fs::dir_ls(from, all = TRUE)
-  entries <- entries[basename(entries) != ".git"]
-  types <- fs::file_info(entries)$type
-  unsupported <- which(!types %in% c("file", "directory"))
-  if (length(unsupported)) {
-    entry <- entries[unsupported[1L]]
-    cli::cli_abort(c(
-      "Cannot copy linked or special file {.file {entry}}.",
-      i = "Run the check from a checkout with ordinary files and directories."
-    ), class = "biocroxytest_test_check_input", call = NULL)
-  }
-  files <- entries[types == "file"]
-  fs::file_copy(files, file.path(to, basename(files)))
-  for (directory in entries[types == "directory"]) {
-    copy_test_package(directory, file.path(to, basename(directory)))
-  }
 }
 
 regenerate_test_copy <- function(copy) {

@@ -36,15 +36,10 @@
 #' unlink(pkg, recursive = TRUE)
 test_case_plan <- function(path = ".") {
   path <- test_package_path(path)
+  patterns <- test_build_exclusions(path)
   files <- list.files(file.path(path, "R"), pattern = "[.][Rr]$")
   sources <- paste0("R/", files, recycle0 = TRUE)
-  ignore <- file.path(path, ".Rbuildignore")
-  if (file.exists(ignore)) {
-    patterns <- readLines(ignore, warn = FALSE)
-    for (pattern in patterns[nzchar(patterns)]) {
-      sources <- sources[!grepl(pattern, sources, perl = TRUE)]
-    }
-  }
+  sources <- sources[!test_build_ignored(sources, patterns) & !test_build_ignored("R", patterns)]
   blocks <- lapply(file.path(path, sources), roxygen2::parse_file, env = NULL)
   collect_test_cases(unlist(blocks, recursive = FALSE))
 }
@@ -100,10 +95,11 @@ run_test_case <- function(id, path = ".", reporter = "summary",
 }
 
 local_test_case <- function(path, case, download_fixtures, fixture_cache,
+                            manifest = test_package_manifest(path),
                             .local_envir = parent.frame()) {
   copy <- test_package_copy_path(path)
   withr::defer(unlink(copy, recursive = TRUE, expand = FALSE), envir = .local_envir)
-  copy_test_package(path, copy)
+  copy_test_package(path, copy, manifest)
   staging <- withr::local_tempdir("biocroxytest-fixtures-", .local_envir = .local_envir)
   fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
   list(copy = copy, file = file.path(copy, case$path), fixtures = fixtures)

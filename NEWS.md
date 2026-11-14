@@ -1,5 +1,9 @@
 # biocroxytest (development version)
 
+* Copy and fingerprint package and test inputs through a manifest, with
+  opt-in paths for extra inputs and support for older replay records (#37).
+* Match build exclusions case-insensitively for test plans and roclets (#38).
+
 * Add `check_test_plan()` to require completed cases in CI, with a policy
   for recorded warnings (#35).
 * Share named-case execution and support time limits for isolated runners and

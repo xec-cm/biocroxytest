@@ -91,7 +91,7 @@ roxy_tag_parse.roxy_tag_longtests <- function(x) {
 #' # Process the blocks
 #' roxygen2::roclet_process(x, blocks, env, base_path)
 roclet_process.roclet_longtests <- function(x, blocks, env, base_path) {
-  process_test_suites(blocks, "longtests")
+  process_test_suites(filter_test_blocks(blocks, base_path), "longtests")
 }
 
 #' Update generated long tests

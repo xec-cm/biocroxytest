@@ -23,6 +23,7 @@ test_that("a replay restores the seed before suite setup and compares the failur
   record <- withr::with_dir(dirname(file), write_test_replay(evidence, id, basename(file)))
   expect_identical(readRDS(file), record)
   expect_identical(record$revision, evidence$revision)
+  expect_identical(record$format, 2L)
   expect_match(record$command, "biocroxytest::replay_test_case", fixed = TRUE)
   from_command <- withr::with_dir(pkg, eval(parse(text = record$command)))
   expect_true(from_command$comparison$same_failure)
@@ -36,6 +37,8 @@ test_that("a replay restores the seed before suite setup and compares the failur
   expect_identical(replayed$cases$detail, evidence$cases$detail)
   expect_identical(.Random.seed, caller_seed)
   expect_identical(Sys.getenv("CI"), "true")
+  writeLines("unrelated notes", file.path(pkg, "notes.txt"))
+  expect_true(replay_test_case(file, pkg)$comparison$same_failure)
 
   other_seed <- record
   other_seed$context$seed <- 99L
