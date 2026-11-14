@@ -11,7 +11,8 @@ replay_test_case(
   file,
   path = ".",
   download_fixtures = FALSE,
-  fixture_cache = NULL
+  fixture_cache = NULL,
+  timeout = Inf
 )
 }
 \arguments{
@@ -29,6 +30,11 @@ a verified copy is unavailable in the cache. Defaults to \code{FALSE}.}
 
 \item{fixture_cache}{BiocFileCache directory. \code{NULL} uses the package's
 user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
+
+\item{timeout}{Maximum seconds for each isolated R process, including
+package loading and suite hooks. Defaults to \code{Inf}. Copying files and
+preparing fixtures take place before this limit starts. After a timeout
+the plan continues with the remaining cases.}
 }
 \value{
 \code{write_test_replay()} returns the saved record invisibly.

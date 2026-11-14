@@ -17,7 +17,7 @@
 #' expectation without skips. A failed expectation or test error gives
 #' `failed`. An explicit skip from the case body before any passes gives
 #' `skipped`. An early return, nested or partial skip, stale generated
-#' case or interrupted suite setup or teardown gives
+#' case, timed-out R process or interrupted suite setup or teardown gives
 #' `incomplete`. Absent generated files and absent case results give
 #' `missing`. The case file and its declared code must agree before it runs.
 #'
@@ -29,9 +29,14 @@
 #'   user cache directory, `tools::R_user_dir("biocroxytest", "cache")`.
 #' @param seed An optional integer seed used independently for each selected
 #'   case. With `NULL`, each case gets a seed in its own R process.
+#' @param timeout Maximum seconds for each isolated R process, including
+#'   package loading and suite hooks. Defaults to `Inf`. Copying files and
+#'   preparing fixtures take place before this limit starts. After a timeout
+#'   the plan continues with the remaining cases.
 #' @return A list with `revision`, a content fingerprint, `cases`, a data
 #'   frame containing the selected case IDs, suites, paths, statuses,
-#'   durations in seconds and diagnostics, and `environments`, the R
+#'   durations in seconds, diagnostics and recorded warning counts
+#'   (`NA` when unavailable), and `environments`, the R
 #'   version, platform, operating system, locale and loaded package versions
 #'   observed at the end of execution, by case ID. The duration is elapsed
 #'   time for the case, or elapsed runner time when execution is interrupted.
@@ -41,6 +46,7 @@
 #'   `replay` holds the seed, RNG kind and selected environment settings for
 #'   executed cases, keyed by case ID. Use \link[=write_test_replay]{write_test_replay()}
 #'   to export a failure.
+#' @seealso \link[=check_test_plan]{check_test_plan()} to require completed cases in CI.
 #' @export
 #' @examples
 #' pkg <- tempfile("test-plan-example-")
@@ -49,16 +55,20 @@
 #' run_test_plan(pkg)
 #' unlink(pkg, recursive = TRUE)
 run_test_plan <- function(path = ".", ids = NULL, download_fixtures = FALSE,
-                          fixture_cache = NULL, seed = NULL) {
+                          fixture_cache = NULL, seed = NULL, timeout = Inf) {
   if (!is.null(seed) && !valid_scalar_integer(seed)) {
     cli::cli_abort("{.arg seed} must be one integer.", call = NULL)
   }
-  run_case_evidence(path, ids, download_fixtures, fixture_cache, seed)
+  run_case_evidence(path, ids, download_fixtures, fixture_cache, seed, timeout)
 }
 
 run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
-                              seed, replay = NULL) {
+                              seed, timeout, replay = NULL) {
   validate_fixture_run_options(download_fixtures, fixture_cache)
+  if (!is.numeric(timeout) || length(timeout) != 1L || !is.null(dim(timeout)) ||
+      is.na(timeout) || timeout <= 0) {
+    cli::cli_abort("{.arg timeout} must be a positive number of seconds or Inf.", call = NULL)
+  }
   path <- test_package_path(path)
   snapshot <- test_package_copy_path(path)
   on.exit(unlink(snapshot, recursive = TRUE, expand = FALSE), add = TRUE)
@@ -98,6 +108,7 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   cases_df$status <- rep("missing", nrow(cases_df))
   cases_df$duration <- rep(NA_real_, nrow(cases_df))
   cases_df$detail <- rep("", nrow(cases_df))
+  cases_df$warnings <- rep(NA_integer_, nrow(cases_df))
   environments <- list()
   fixtures <- list()
   replay_context <- list()
@@ -107,11 +118,14 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   }
   for (i in seq_len(nrow(plan))) {
     evidence <- record_test_case(
-      snapshot, plan[i, ], download_fixtures, fixture_cache, seed, replay
+      snapshot, plan[i, ], download_fixtures, fixture_cache, seed, timeout, replay
     )
     cases_df$status[i] <- evidence$status
     cases_df$duration[i] <- evidence$duration
     cases_df$detail[i] <- evidence$detail
+    if (!is.null(evidence$warnings)) {
+      cases_df$warnings[i] <- evidence$warnings
+    }
     if (!is.null(evidence$environment)) {
       environments[[cases_df$id[i]]] <- evidence$environment
     }
@@ -148,7 +162,8 @@ test_plan_revision <- function(path) {
   unname(tools::md5sum(manifest_file))
 }
 
-record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, seed, replay) {
+record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, seed,
+                             timeout, replay) {
   file <- file.path(snapshot, case$path)
   if (!file.exists(file)) {
     return(list(status = "missing", duration = NA_real_, detail = "Generated file is absent."))
@@ -158,12 +173,8 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
     return(list(status = "incomplete", duration = NA_real_, detail = location))
   }
 
-  copy <- test_package_copy_path(snapshot)
-  on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
-  copy_test_package(snapshot, copy)
-  staging <- tempfile("biocroxytest-fixtures-")
-  on.exit(unlink(staging, recursive = TRUE), add = TRUE)
-  fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
+  prepared <- local_test_case(snapshot, case, download_fixtures, fixture_cache)
+  fixtures <- prepared$fixtures
   fixture_evidence <- fixtures[, names(fixtures) != "path"]
   if (!is.null(replay) && !same_replay_fixtures(fixture_evidence, replay$fixtures)) {
     return(list(status = "incomplete", duration = NA_real_,
@@ -175,21 +186,26 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
                 detail = fixture_diagnostics(fixtures), fixtures = fixture_evidence))
   }
 
-  file <- file.path(copy, case$path)
+  file <- prepared$file
   started <- proc.time()[["elapsed"]]
   run <- tryCatch(
     callr::r(
-      execute_evidence_case,
+      execute_test_case,
       args = list(
-        path = copy, file = file, description = case$description,
-        code = case$code, location = location, checksum = unname(tools::md5sum(file)),
-        paths = fixture_paths(fixtures), seed = seed
+        path = prepared$copy, file = file, description = case$description,
+        paths = fixture_paths(fixtures),
+        evidence = list(code = case$code, location = location,
+                        checksum = unname(tools::md5sum(file)), seed = seed)
       ),
       user_profile = FALSE,
       system_profile = FALSE,
       error = "error",
+      timeout = timeout,
       env = c(callr::rcmd_safe_env(), replay$context$settings)
     ),
+    callr_timeout_error = function(error) {
+      list(problem = sprintf("The case timed out after %s seconds.", timeout))
+    },
     error = function(error) list(problem = conditionMessage(error))
   )
   if (is.null(run)) {
@@ -206,9 +222,24 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
   run
 }
 
-execute_evidence_case <- function(path, file, description, code, location, checksum,
-                                  paths, seed) {
+execute_test_case <- function(path, file, description, paths, reporter = "summary",
+                              evidence = NULL) {
+  run_file <- function(reporter) {
+    package <- read.dcf(file.path(path, "DESCRIPTION"), fields = "Package")[[1L]]
+    withr::local_options(list(biocroxytest.fixture_paths = paths))
+    roxygen2::load_pkgload(path)
+    if (utils::packageVersion("testthat") < "3.3.0") {
+      stop("Running a named case requires testthat 3.3.0 or newer.", call. = FALSE)
+    }
+    testthat::test_file(file, reporter = reporter, desc = description, package = package)
+  }
+  if (is.null(evidence)) { return(invisible(run_file(reporter))) }
+
   setwd(path)
+  code <- evidence$code
+  location <- evidence$location
+  checksum <- evidence$checksum
+  seed <- evidence$seed
   settings <- Sys.getenv(c("CI", "NOT_CRAN", "TZ"), unset = NA_character_)
   if (is.null(seed)) {
     seed <- sample.int(.Machine$integer.max, 1L)
@@ -281,17 +312,11 @@ execute_evidence_case <- function(path, file, description, code, location, check
   )$new()
 
   problem <- tryCatch(withCallingHandlers({
-    package <- read.dcf("DESCRIPTION", fields = "Package")[[1L]]
-    roxygen2::load_pkgload(path)
-    if (utils::packageVersion("testthat") < "3.3.0") {
-      stop("Running a named case requires testthat 3.3.0 or newer.", call. = FALSE)
-    }
-    options(
-      biocroxytest.case_event = function(event) { state[[event]] <- TRUE },
-      biocroxytest.fixture_paths = paths
+    withr::local_options(
+      list(biocroxytest.case_event = function(event) { state[[event]] <- TRUE })
     )
 
-    testthat::test_file(file, reporter = reporter, desc = description, package = package)
+    run_file(reporter)
     if (!identical(unname(tools::md5sum(file)), checksum)) {
       stop("The generated file changed during suite teardown.", call. = FALSE)
     }
@@ -305,6 +330,8 @@ execute_evidence_case <- function(path, file, description, code, location, check
   passed <- any(vapply(expectations, inherits, logical(1), "expectation_success"))
   failed <- any(broken)
   skipped <- any(vapply(expectations, inherits, logical(1), "expectation_skip"))
+  warnings <- length(state$suite_warnings) +
+    sum(vapply(expectations, inherits, logical(1), "expectation_warning"))
   diagnostics <- Filter(function(cnd) !inherits(cnd, "expectation_success"), expectations)
   messages <- c(problem, state$suite_warnings, vapply(diagnostics, conditionMessage, character(1)))
   detail <- paste(unique(messages), collapse = "\n")
@@ -367,7 +394,7 @@ execute_evidence_case <- function(path, file, description, code, location, check
 
   list(
     status = status, duration = if (is.null(problem)) state$duration else NA_real_,
-    detail = detail, environment = environment,
+    detail = detail, warnings = warnings, environment = environment,
     replay = list(seed = as.integer(seed), rng = rng, settings = settings, failures = failures)
   )
 }

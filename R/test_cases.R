@@ -59,6 +59,8 @@ test_case_plan <- function(path = ".") {
 #' intact. Use a full suite run to review or update snapshots and exercise
 #' custom suite runners. The copy requires ordinary files and directories,
 #' as in [check_generated_tests()].
+#' The package is loaded from `path` in the current R session. To run a single
+#' case in an isolated process with a timeout, use [run_test_plan()] with its ID.
 #'
 #' @param id An exact case ID from [test_case_plan()].
 #' @param path Path to the source package root.
@@ -88,24 +90,23 @@ run_test_case <- function(id, path = ".", reporter = "summary",
     fixture_cache <- resolve_fixture_cache(fixture_cache, path)
   }
 
-  copy <- test_package_copy_path(path)
-  on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
-  copy_test_package(path, copy)
-
-  staging <- tempfile("biocroxytest-fixtures-")
-  on.exit(unlink(staging, recursive = TRUE), add = TRUE)
-  fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
+  prepared <- local_test_case(path, case, download_fixtures, fixture_cache)
+  fixtures <- prepared$fixtures
   if (any(fixtures$required & fixtures$status != "verified")) {
     details <- fixture_diagnostics(fixtures)
     cli::cli_abort("{details}", class = "biocroxytest_fixture_unavailable", call = NULL)
   }
-  old_options <- options(biocroxytest.fixture_paths = fixture_paths(fixtures))
-  on.exit(options(old_options), add = TRUE)
+  execute_test_case(path, prepared$file, case$description, fixture_paths(fixtures), reporter)
+}
 
-  package <- read.dcf(file.path(copy, "DESCRIPTION"), fields = "Package")[[1L]]
-  roxygen2::load_pkgload(path)
-  testthat::test_file(file.path(copy, case$path), reporter = reporter,
-                     desc = case$description, package = package)
+local_test_case <- function(path, case, download_fixtures, fixture_cache,
+                            .local_envir = parent.frame()) {
+  copy <- test_package_copy_path(path)
+  withr::defer(unlink(copy, recursive = TRUE, expand = FALSE), envir = .local_envir)
+  copy_test_package(path, copy)
+  staging <- withr::local_tempdir("biocroxytest-fixtures-", .local_envir = .local_envir)
+  fixtures <- resolve_case_fixtures(copy, case, staging, download_fixtures, fixture_cache)
+  list(copy = copy, file = file.path(copy, case$path), fixtures = fixtures)
 }
 
 require_case_testthat <- function() {
