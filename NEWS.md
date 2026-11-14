@@ -1,7 +1,5 @@
 # biocroxytest (development version)
 
-* Align the development version with Bioconductor (#33).
-
 * Pilot `reduce_paired_failure()` for finding a smaller SummarizedExperiment
   that retains whole pairs, an estimable design and a specific failure (#15).
 
