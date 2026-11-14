@@ -11,83 +11,81 @@ output: github_document
 [![R-CMD-check](https://github.com/xec-cm/biocroxytest/workflows/R-CMD-check-bioc/badge.svg)](https://github.com/xec-cm/biocroxytest/actions)
 <!-- badges: end -->
 
-Write testthat assertions next to the R code they cover. biocroxytest uses
-roxygen2 to generate test files and helps keep Bioconductor long tests in a
-separate suite. The test-generation workflow builds on
-[roxytest](https://github.com/mikldk/roxytest).
+Write testthat checks next to the R functions they cover. biocroxytest generates
+ordinary test files and a separate long-test suite for Bioconductor packages.
+It builds on [roxytest](https://github.com/mikldk/roxytest) and uses testthat to
+run the generated tests.
+
+**Start with one test.** Our [first tutorial](https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html)
+uses a complete small package: select samples in a requested order, generate
+a test, see it pass, then introduce a bug and see it fail. You can copy the
+example without changing your own project.
+
+## Choose your next step
+
+| I want to… | Guide |
+| --- | --- |
+| Generate and run my first test | [First test](https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html) |
+| Apply the same assertions to memory and HDF5 inputs | [Named cases](https://xec-cm.github.io/biocroxytest/articles/named-cases.html) |
+| Record a failed case and reproduce it | [Failure replay](https://xec-cm.github.io/biocroxytest/articles/replay-walkthrough.html) |
+| Use checked input files | [Fixtures](https://xec-cm.github.io/biocroxytest/articles/test-fixtures.html) |
+| Require cases in CI, compare runs or migrate from roxytest | [Workflow recipes](https://xec-cm.github.io/biocroxytest/articles/test-workflows.html) |
+| Find smaller paired data that retain a specific failure | [Failure reduction](https://xec-cm.github.io/biocroxytest/articles/reduce-failures.html) |
+
+The first three guides form a learning path. Named cases, execution reports
+and replay are optional: ordinary `@tests` and `@longtests` remain useful on
+their own. Generated tests run with standard testthat; install biocroxytest
+where you generate them or use its optional runners.
 
 ## Installation
 
 ### GitHub development build
 
-This site documents the [GitHub devel branch](https://github.com/xec-cm/biocroxytest/tree/devel).
-Install it for the unified test roclet, named cases, fixtures, replay and
-paired-data reduction.
+**This site documents the [GitHub devel branch](https://github.com/xec-cm/biocroxytest/tree/devel).**
+Use this build for the tutorials and the unified ordinary/long-test workflow.
+It requires R 4.4 or newer. The first tutorial includes installation commands
+for its Bioconductor example dependencies.
 
 ```{r install-github, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager")
-}
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  BiocManager::install("remotes")
-}
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
 BiocManager::install("xec-cm/biocroxytest@devel", update = FALSE)
 ```
 
 ### Bioconductor release
 
 biocroxytest has been available through Bioconductor since 3.19. Install the
-release compatible with your R version using BiocManager.
+release compatible with your R version using BiocManager:
 
 ```{r install-bioc, eval=FALSE}
-if (!requireNamespace("BiocManager", quietly = TRUE)) {
-  install.packages("BiocManager")
-}
+if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
 BiocManager::install("biocroxytest")
 ```
 
-See the [Bioconductor package page](https://www.bioconductor.org/packages/release/bioc/html/biocroxytest.html)
+Use the [Bioconductor package page](https://www.bioconductor.org/packages/release/bioc/html/biocroxytest.html)
 and [release vignette](https://www.bioconductor.org/packages/release/bioc/vignettes/biocroxytest/inst/doc/biocroxytest.html)
-for documentation of that build.
+for that build; development features may not yet be available there.
 
-## Get started
+## How it fits into a package
 
-With the GitHub development build, install `testthat` and add it to
-`Suggests`. Set up the suites you use from your package root with
-`usethis::use_testthat()` for ordinary tests and
-`biocroxytest::use_longtests()` for long tests. Install `usethis` if you
-use the ordinary setup. Add the unified roclet to your existing roxygen
-configuration in `DESCRIPTION`.
+Add `@tests` or `@longtests` to a function's roxygen comments. Configure
+`biocroxytest::tests_roclet` alongside your existing roclets in `DESCRIPTION`,
+then run `roxygen2::roxygenise()`. Commit the generated tests with the source
+and run the appropriate suite.
 
-```text
-Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))
-```
+| Declaration | Destination | Execution |
+| --- | --- | --- |
+| `@tests` | `tests/testthat/` | `devtools::test()` or the ordinary package check |
+| `@longtests` | `longtests/testthat/` | Separate long-test check |
+| `@testCases` | The suite chosen by each named case | Standard testthat or selection by case ID |
 
-Add assertions to a roxygen block in `R/`.
-
-```{r first-test, eval=FALSE}
-#' Increment an integer
-#'
-#' @param x An integer vector.
-#' @return An integer vector.
-#' @export
-#' @tests
-#' expect_identical(increment(2L), 3L)
-increment <- function(x) x + 1L
-```
-
-Run `roxygen2::roxygenise()` from the package root and commit the generated
-files. Ordinary tests live in `tests/testthat/`. Tests declared with
-`@longtests` live in `longtests/testthat/`.
-
-- [Generate and run tests](https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html)
-- [Manage named cases, fixtures and failures](https://xec-cm.github.io/biocroxytest/articles/named-cases.html)
-- [Function reference](https://xec-cm.github.io/biocroxytest/reference/index.html)
+The [first tutorial](https://xec-cm.github.io/biocroxytest/articles/biocroxytest.html)
+shows the full setup, generated file and passing/failing output. For complete
+arguments and return values, use the [function reference](https://xec-cm.github.io/biocroxytest/reference/index.html).
 
 ## Contributing
 
 Report bugs or propose changes through [GitHub Issues](https://github.com/xec-cm/biocroxytest/issues).
 Include a [minimal reproducible example](https://reprex.tidyverse.org/articles/articles/learn-reprex.html)
-when reporting a failure.
-
-Contributions follow the [Bioconductor Code of Conduct](https://bioconductor.org/about/code-of-conduct/).
+when reporting a failure. Contributions follow the
+[Bioconductor Code of Conduct](https://bioconductor.org/about/code-of-conduct/).

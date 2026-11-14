@@ -1,0 +1,192 @@
+---
+title: "Use a checked data file in a test"
+output: rmarkdown::html_vignette
+description: >
+  Create a small fixture, check its identity, and share package data between
+  ordinary and long tests.
+vignette: >
+  %\VignetteIndexEntry{Use a checked data file in a test}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r fixture-options, include=FALSE}
+knitr::opts_chunk$set(error = FALSE)
+```
+
+A fixture is input data kept for a repeatable test. This recipe uses a tiny
+table of sample counts. We will run a case, change the file, and see the
+runner refuse to use the changed input.
+
+Use the [GitHub development build](https://github.com/xec-cm/biocroxytest/tree/devel)
+and the dependencies from [the first tutorial](biocroxytest.html). The
+example package already lists `fs` in `Suggests`; add it to your own
+package when declaring file fixtures. Run the following blocks in order.
+
+## Create the input file
+
+Start with a fresh copy of the example package. The temporary `pkg`
+directory belongs to this recipe and can be deleted afterwards.
+
+```{r fixture-package}
+template <- system.file("examples", "samplealignment", package = "biocroxytest", mustWork = TRUE)
+pkg <- tempfile("samplealignment-")
+fs::dir_copy(template, pkg)
+fixture <- file.path(pkg, "tests", "testthat", "counts.tsv")
+contents <- "sample\tcount\ns1\t11\ns2\t21\ns3\t31\n"
+writeBin(charToRaw(contents), fixture)
+unname(tools::md5sum(fixture))
+```
+
+The checksum is `7f769a11cbd3fb2e9ad69db2f5d188a6`. It identifies the exact
+file bytes, including line endings. `writeBin()` makes this example use
+the same LF endings on every platform. For your own file, use the checksum
+returned by `tools::md5sum()`.
+
+## Declare and read the fixture
+
+Replace `R/align-samples.R` **inside `pkg`** with the complete block below.
+`source` is relative to `tests/testthat`, the directory of this case's
+suite. The setup reads the verified path and constructs `x` before the
+shared assertions run.
+
+```{r fixture-source, eval=FALSE}
+#' Select samples in the requested order
+#'
+#' @param x An object with named sample columns.
+#' @param samples Sample names in the desired order.
+#' @return The selected columns.
+#' @export
+#' @testCases sample-counts
+#' list(
+#'   cases = list(file = list(
+#'     suite = "tests",
+#'     fixtures = list(counts = list(
+#'       source = "counts.tsv", md5 = "7f769a11cbd3fb2e9ad69db2f5d188a6"
+#'     )),
+#'     setup = {
+#'       table <- read.delim(fixture_paths[["counts"]])
+#'       x <- matrix(table$count, nrow = 1L,
+#'                   dimnames = list("gene1", table$sample))
+#'     }
+#'   )),
+#'   test = {
+#'     selected <- align_samples(x, c("s3", "s1"))
+#'     expect_identical(colnames(selected), c("s3", "s1"))
+#'     expect_identical(as.integer(selected), c(31L, 11L))
+#'   }
+#' )
+align_samples <- function(x, samples) x[, samples, drop = FALSE]
+```
+
+```{r write-fixture-source, include=FALSE}
+writeLines(knitr::knit_code$get("fixture-source"), file.path(pkg, "R", "align-samples.R"))
+```
+
+Generate the test and run the named case. The case should be `completed`
+and its file should be `verified`.
+
+```{r verified-fixture, message=FALSE}
+roxygen2::roxygenise(pkg)
+id <- "sample-counts/file"
+report <- biocroxytest::run_test_plan(pkg, ids = id)
+biocroxytest::check_test_plan(report, required = id)
+report$cases[c("id", "status")]
+report$fixtures[[id]][c("source", "status", "observed_md5")]
+```
+
+## See what happens when the file changes
+
+Change the last count without changing the declaration. The named runner
+checks fixtures before executing the case, so this run is `incomplete`,
+with a fixture status of `mismatch`. The test body has not run.
+
+```{r changed-fixture}
+writeBin(charToRaw(sub("s3\t31", "s3\t99", contents, fixed = TRUE)), fixture)
+changed <- biocroxytest::run_test_plan(pkg, ids = id)
+changed$cases[c("id", "status")]
+changed$fixtures[[id]][c("source", "status")]
+stopifnot(changed$cases$status == "incomplete",
+          changed$fixtures[[id]]$status == "mismatch")
+```
+
+Restore the intended bytes and confirm the case completes again. Update
+the declared checksum only when a fixture change is intentional and the
+test's expected result has been reviewed.
+
+```{r restore-fixture}
+writeBin(charToRaw(contents), fixture)
+restored <- biocroxytest::run_test_plan(pkg, ids = id)
+biocroxytest::check_test_plan(restored, required = id)
+```
+
+## Share a small file between both suites
+
+A file needed by ordinary and long tests can instead live in
+`inst/extdata`. Create a file containing the expected selected counts:
+
+```{r shared-file}
+dir.create(file.path(pkg, "inst", "extdata"), recursive = TRUE)
+expected_file <- file.path(pkg, "inst", "extdata", "expected.txt")
+writeBin(charToRaw("31\n11\n"), expected_file)
+unname(tools::md5sum(expected_file))
+withr::with_dir(pkg, biocroxytest::use_longtests())
+```
+
+Create `R/shared-counts.R` in `pkg` with this block. `fs::path_package()`
+finds the file in a source package loaded for development and in an
+installed package. The installed path starts at `extdata`, without `inst`.
+
+```{r shared-source, eval=FALSE}
+#' Shared expected counts
+#' @noRd
+#' @testCases shared-counts
+#' list(
+#'   cases = list(ordinary = list(suite = "tests"),
+#'                long = list(suite = "longtests")),
+#'   test = {
+#'     file <- fs::path_package("samplealignment", "extdata", "expected.txt")
+#'     expect_identical(unname(tools::md5sum(file)), "169ee1004dafb0ff3e7f141113e6f188")
+#'     expected <- scan(file, what = integer(), quiet = TRUE)
+#'     expect_identical(expected, c(31L, 11L))
+#'     selected <- align_samples(example_experiment(), c("s3", "s1"))
+#'     expect_identical(as.integer(SummarizedExperiment::assay(selected)), expected)
+#'   }
+#' )
+NULL
+```
+
+```{r write-shared-source, include=FALSE}
+writeLines(knitr::knit_code$get("shared-source"), file.path(pkg, "R", "shared-counts.R"))
+```
+
+```{r run-shared-file, message=FALSE}
+roxygen2::roxygenise(pkg)
+ids <- c("shared-counts/ordinary", "shared-counts/long")
+shared <- biocroxytest::run_test_plan(pkg, ids = ids)
+biocroxytest::check_test_plan(shared, required = ids)
+shared$cases[c("id", "suite", "status")]
+```
+
+Both rows should be `completed`. Here the checksum is an ordinary test
+assertion. It is not a declaration in `fixtures`, so it does not add a
+fixture-verification row to the report. Retained files under `inst` still
+contribute to the source fingerprint recorded for the run.
+
+## Remote and optional inputs
+
+For an HTTPS fixture, use its URL as `source` and the checksum of the
+intended file as `md5`. Install BiocFileCache and explicitly allow downloads
+with `run_test_plan(pkg, download_fixtures = TRUE)`. Later runs can reuse
+the verified cache offline; a custom `fixture_cache` must be outside `pkg`.
+Planning and generation do not download files.
+
+Standard testthat runs verify local declared fixtures and skip cases
+requiring remote fixtures. The named runners resolve both kinds before
+execution. Set `required = FALSE` only when the test handles an unavailable
+input: its `fixture_paths` entry will be `NA_character_`.
+
+```{r cleanup-fixtures, include=FALSE}
+if ("samplealignment" %in% loadedNamespaces()) pkgload::unload("samplealignment")
+unlink(pkg, recursive = TRUE)
+```

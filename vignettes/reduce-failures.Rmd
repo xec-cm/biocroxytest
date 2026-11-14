@@ -1,0 +1,151 @@
+---
+title: "Reduce a failure while keeping sample pairs"
+output: rmarkdown::html_vignette
+description: >
+  Find a smaller paired SummarizedExperiment that retains a specific failure,
+  then use it to test a correction.
+vignette: >
+  %\VignetteIndexEntry{Reduce a failure while keeping sample pairs}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r reduction-options, include=FALSE}
+knitr::opts_chunk$set(error = FALSE)
+```
+
+After finding a repeatable failure, a smaller input can make its cause
+easier to understand. Removing arbitrary samples from paired data can
+break the experimental design. `reduce_paired_failure()` removes genes
+and whole pairs while checking that the same failure remains.
+
+This independent recipe uses a **deliberately faulty function and synthetic
+data**. It illustrates the reduction workflow, not a known bug in an
+analysis package or a biological result. Install the [GitHub development
+build](https://github.com/xec-cm/biocroxytest/tree/devel), SummarizedExperiment
+and testthat before running these blocks.
+
+## Create a paired input
+
+There are four genes and three subjects, each measured before and after.
+The integer counts make the expected result easy to inspect.
+
+```{r paired-data}
+samples <- data.frame(
+  subject = rep(c("a", "b", "c"), times = 2L),
+  visit = rep(c("before", "after"), each = 3L),
+  row.names = paste0("sample", seq_len(6L))
+)
+counts <- matrix(seq_len(24L), nrow = 4L,
+                 dimnames = list(paste0("gene", seq_len(4L)), rownames(samples)))
+x <- SummarizedExperiment::SummarizedExperiment(
+  assays = list(counts = counts), colData = samples
+)
+dim(x)
+```
+
+## Identify the failure we want to keep
+
+This faulty function silently discards counts of 24 or larger. On the
+original data it returns 276, whereas adding all counts gives 300.
+
+```{r faulty-operation}
+count_total <- function(data) {
+  counts <- SummarizedExperiment::assay(data, "counts")
+  sum(counts[counts < 24L])
+}
+c(observed = count_total(x), expected = 300L)
+```
+
+The checker runs the operation on each candidate subset and returns a
+stable identifier for this particular discrepancy. `NULL` means the
+discrepancy is absent. An unexpected error is allowed to stop reduction;
+it should not be mistaken for the failure we are trying to preserve.
+
+```{r failure-checker}
+check_total <- function(data) {
+  expected <- sum(SummarizedExperiment::assay(data, "counts"))
+  if (count_total(data) != expected) return("count total loses values")
+  NULL
+}
+check_total(x)
+```
+
+## Reduce and inspect the result
+
+Use the subject column to identify pairs and the visit column to identify
+conditions. The design must be additive, with both columns as main effects.
+Here it is `~ subject + visit`.
+
+```{r reduce-input}
+reduced <- biocroxytest::reduce_paired_failure(
+  x, pair = "subject", condition = "visit", design = ~ subject + visit,
+  check = check_total, seed = 42L
+)
+rbind(original = dim(x), reduced = dim(reduced$data))
+reduced$failure
+SummarizedExperiment::assay(reduced$data, "counts")
+```
+
+The result has one gene and four samples: two complete pairs. One pair
+alone would leave no residual degrees of freedom for this design. Verify
+the pair structure, the design, and the identity of the retained failure:
+
+```{r verify-reduction}
+metadata <- as.data.frame(SummarizedExperiment::colData(reduced$data))
+table(metadata$subject, metadata$visit)
+model <- stats::model.matrix(~ subject + visit, metadata)
+stopifnot(
+  identical(dim(reduced$data), c(1L, 4L)),
+  all(table(metadata$subject, metadata$visit) == 1L),
+  qr(model)$rank == ncol(model), nrow(model) > ncol(model),
+  identical(check_total(reduced$data), check_total(x))
+)
+```
+
+## Turn the smaller input into a regression test
+
+Keep the expected correct behavior in the test. First verify that the
+faulty function fails that assertion. `expect_failure()` is used here
+only to demonstrate the old defect without stopping the tutorial. The
+four displayed counts, 8, 12, 20 and 24, add up to 64.
+
+```{r demonstrate-regression}
+fixture <- reduced$data
+expected <- 64L
+testthat::expect_identical(as.integer(SummarizedExperiment::assay(fixture)),
+                           c(8L, 12L, 20L, 24L))
+testthat::expect_failure(testthat::expect_identical(count_total(fixture), expected))
+```
+
+Correct the operation by summing all values. The same assertion now
+passes, and the checker no longer reports the failure.
+
+```{r correct-operation}
+count_total <- function(data) sum(SummarizedExperiment::assay(data, "counts"))
+testthat::expect_identical(count_total(fixture), expected)
+stopifnot(is.null(check_total(fixture)))
+```
+
+For a permanent regression test, save the reviewed fixture in your test
+data directory and keep the `expect_identical()` assertion with an
+independently checked expected value. Include the data creation or source
+and the reason this input matters. The [fixture recipe](test-fixtures.html)
+shows how to identify the saved bytes.
+
+## Boundaries of the reducer
+
+The current reducer supports exactly two conditions and one observation
+per condition in every pair. It preserves a full-rank additive design and
+positive residual degrees of freedom. Put any additional scientific
+constraints, such as a minimum number of subjects per group, in your checker.
+
+Reduction is a bounded greedy search, not a guarantee of the smallest
+possible input. Inspect `reduced$checks` and `reduced$budget_exhausted` if
+you set `max_checks`. The checker must be repeatable; the same base R seed
+is used for every attempt. Set seeds for other random-number generators
+inside the checker when needed.
+
+An HDF5-backed subset retains its backing file. Saving the subset with
+`saveRDS()` alone does not make that file portable. Review and reload any
+exported data, and verify the same failure before sharing it.

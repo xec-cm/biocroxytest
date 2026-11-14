@@ -3,12 +3,17 @@ template:
   bootstrap: 5
   bootswatch: minty
 articles:
-- title: Guides
+- title: Learn with a small package
   navbar: ~
   contents:
   - biocroxytest
   - named-cases
   - replay-walkthrough
+- title: Recipes and details
+  contents:
+  - test-fixtures
+  - test-workflows
+  - reduce-failures
   - bioconductor-regressions
 reference:
 - title: Generate and check tests

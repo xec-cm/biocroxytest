@@ -1,281 +1,147 @@
 ---
-title: "Named cases, fixtures and failure replay"
+title: "2. Test the same behavior in memory and HDF5"
 output: rmarkdown::html_vignette
 description: >
-  Share assertions across suites, record which cases ran, and turn a
-  reproducible failure into a smaller regression test.
+  Share sample-alignment assertions across ordinary and long tests, then
+  select and record cases by a stable name.
 vignette: >
-  %\VignetteIndexEntry{Named cases, fixtures and failure replay}
+  %\VignetteIndexEntry{2. Test the same behavior in memory and HDF5}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 ---
 
-This guide uses the [GitHub development build](https://github.com/xec-cm/biocroxytest/tree/devel).
-Set up the unified roclet and your test suites as described in
-[Introduction to biocroxytest](biocroxytest.html). The named-case runners
-require testthat 3.3.0 or newer.
-
-## Share assertions across suites
-
-In an `@testCases` tag, give the group a name and provide a literal list
-of named cases and a shared `test` block. Each case chooses a suite and can
-provide setup code. The setup and test run together in the same testthat
-environment, once per case.
-
-```{r named-declaration, eval=FALSE}
-#' Increment an integer vector
-#'
-#' @param x An integer vector.
-#' @return An integer vector.
-#' @export
-#' @testCases arithmetic
-#' list(
-#'   cases = list(
-#'     small = list(suite = "tests", setup = { x <- 2L }),
-#'     large = list(suite = "longtests", setup = { x <- seq_len(10000L) })
-#'   ),
-#'   test = { expect_identical(increment(x), x + 1L) }
-#' )
-increment <- function(x) x + 1L
+```{r options, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", error = FALSE)
 ```
 
-Each ID combines the group and case names, so `arithmetic/large` keeps
-its ID if the declaration moves to another source file or suite. The
-planner reads declarations without loading the consumer package.
+The [first tutorial](biocroxytest.html) checks that selecting samples preserves
+the requested order. A Bioconductor function may receive an ordinary matrix
+or an HDF5-backed assay. We want the same behavior from both, with one shared
+set of assertions.
 
-```{r plan-and-run, eval=FALSE}
-before <- biocroxytest::test_case_plan()
-roxygen2::roxygenise()
-biocroxytest::run_test_case("arithmetic/large")
+This tutorial uses the GitHub development version, testthat 3.3.0 or newer,
+SummarizedExperiment and HDF5Array. See the first tutorial's installation block.
+It starts with a fresh copy; no objects from another article are required.
 
-# After editing the declarations
-biocroxytest::compare_test_plans(before, biocroxytest::test_case_plan())
+## Prepare the two cases
+
+```{r prepare-package}
+template <- system.file("examples", "samplealignment", package = "biocroxytest",
+                        mustWork = TRUE)
+pkg <- tempfile("samplealignment-")
+fs::dir_copy(template, pkg)
+source_file <- file.path(pkg, "R", "align-samples.R")
+named_source <- system.file("examples", "steps", "named-cases.R",
+                            package = "biocroxytest", mustWork = TRUE)
+file.copy(named_source, source_file, overwrite = TRUE)
+withr::with_dir(pkg, biocroxytest::use_longtests())
 ```
 
-The comparison reports additions, removals, suite moves and changes to
-test code or fixtures. Use the full suite to exercise custom runners or
-dependencies between cases.
+The copy command replaces the first tutorial's `@tests` block with the
+following complete file. In your own package, you would edit the R source
+directly. `use_longtests()` creates the separate runner and enables
+`RunLongTests: TRUE` in `.BBSoptions`, preserving an existing runner.
 
-## Pin fixture files
-
-Add `fs` to the consumer package's `Suggests` and declare fixtures in
-the case's `fixtures` list. For a local file, use a path relative to the
-case's suite directory and obtain its checksum with `tools::md5sum()`.
-For example, put `counts.tsv` in `tests/testthat/`, then use this entry in
-the named `cases` list.
-
-```r
-table = list(
-  suite = "tests",
-  fixtures = list(
-    counts = list(source = "counts.tsv", md5 = "<32-digit checksum>")
-  )
-)
+```{r named-source, code=readLines(source_file), eval=FALSE}
 ```
 
-Read the verified file in the setup or test using
-`fixture_paths[["counts"]]`. A required fixture with missing or different
-bytes blocks execution in the named runner. Set `required = FALSE` to
-handle unavailability as an `NA_character_` path.
+Read the declaration in three parts:
 
-For an HTTPS source, install BiocFileCache and run
-`biocroxytest::run_test_plan(download_fixtures = TRUE)` to allow downloads.
-Later runs can reuse the verified cache offline. Standard testthat runs
-check local fixtures and skip cases that require a remote fixture.
-Keep generated or temporary data setup in the case, with cleanup for
-files such as HDF5 backing stores.
+- **`sample-alignment`** names the group. Combined with each case name it
+  gives the stable IDs `sample-alignment/memory` and `sample-alignment/hdf5`.
+- **`setup`** creates the input for each case. The HDF5 case writes a real
+  backing file, checks its class and cleans it up after the test with withr.
+- **`test`** runs the same three assertions for each input. The expected
+  sample names, counts and conditions are written explicitly.
 
-### Share a file between suites
+The memory case belongs to the ordinary suite. The HDF5 case goes into
+`longtests` so it can run separately with its backend dependency. This tiny
+example is fast: HDF5 does not automatically make a test slow, and you can
+put both cases in the ordinary suite if that suits your package.
 
-Keep a small shared fixture under `inst/extdata` in the consumer package
-and add `fs` to its `Suggests`. Use `fs::path_package()` inside the test to
-find the same file in a source package loaded for development or in an
-installed package. The first argument is the consumer package name.
-The installed path starts at `extdata`, so omit `inst` from the call.
+For a standalone long test with no shared assertions, use an `@longtests`
+block instead of `@tests` and enable the suite with `use_longtests()`.
+Named cases are useful when you want to reuse a test body or select a case by ID.
 
-```{r shared-fixture, eval=FALSE}
-file <- fs::path_package("mypackage", "extdata", "expected.txt")
-expect_identical(unname(tools::md5sum(file)), "8c213d966298ecd26ef240b3703d46e9")
-expect_identical(scan(file, what = integer(), quiet = TRUE), c(3L, 6L))
+## Generate and inspect the plan
+
+```{r generate, message=FALSE}
+roxygen2::roxygenise(pkg)
+plan <- biocroxytest::test_case_plan(pkg)
+plan[c("id", "suite")]
 ```
 
-This checksum corresponds to a file with `3` and `6` on separate lines,
-each ending in LF. Compute the checksum from your own fixture. Both
-suites can use the same path and assertions. Files retained from the
-consumer's `inst` directory contribute to the revision fingerprint.
-The checksum check above is a test assertion. The `fixtures` field of
-the report describes files declared in `fixtures`, such as in the
-suite-relative example above.
+You should see two rows, one for each ID and its chosen suite. Planning reads
+the declarations without running the setup or creating an HDF5 file.
+Moving a case to another source file or suite does not change its ID.
 
-## Record what ran
+The generated files are:
 
-```{r execution-evidence, eval=FALSE}
-evidence <- biocroxytest::run_test_plan(ids = "arithmetic/large", seed = 42L)
-evidence$cases
-evidence$fixtures
+| Case | Generated file |
+| --- | --- |
+| memory | `tests/testthat/test-roxytest-tests-align-samples.R` |
+| hdf5 | `longtests/testthat/test-biocroxytest-longtests-align-samples.R` |
+
+They run with standard testthat. From an R session you can run both source suites:
+
+```{r run-suites, message=FALSE}
+ordinary <- testthat::test_local(pkg, reporter = "silent")
+long <- testthat::test_dir(file.path(pkg, "longtests", "testthat"),
+                           package = "samplealignment", load_package = "source",
+                           reporter = "silent")
+rbind(ordinary = as.data.frame(ordinary)[c("failed", "error", "passed")],
+      long = as.data.frame(long)[c("failed", "error", "passed")])
 ```
 
-Each case runs in a fresh R session and temporary package copy. The
-report records the source fingerprint, elapsed time, fixture checks and
-R environment. A `completed` case reached the end with a passing
-assertion and no skips. The other states are `failed`, `skipped`,
-`incomplete` and `missing`. For example, stale generated code or a
-skip after a passing assertion is incomplete.
+Each suite should pass four expectations: one for the input backend and three
+for the selected samples. For an installed package check, use
+`R CMD check package_version.tar.gz` and
+`R CMD check --test-dir=longtests package_version.tar.gz` in separate output
+directories. Each suite must have its own helpers; it must not rely on the
+other suite having run first.
 
-The copy and its revision fingerprint use the same input manifest. It
-includes `DESCRIPTION`, `NAMESPACE`, `.BBSoptions`, `.Rbuildignore`,
-`.Rinstignore`, license and build scripts, and the standard package
-directories `R`, `src`, `data`, `inst`, `man`, `vignettes`, `demo`, `po`,
-`tools` and `exec`. Build ignore patterns are matched without regard to
-case. Standard editor and native build artifacts are skipped in the usual
-package directories. Both test suites are retained in full, including helpers
-and local fixtures used only during development. Roxygen templates in
-`man-roxygen` and tooling in `man/roxygen` are also retained. Git metadata
-is excluded.
-
-If a test or roclet uses inputs outside those paths, declare each extra
-file or directory on its own line in the source package's `DESCRIPTION`.
-For example, this includes an example script and a directory of reference
-data that would otherwise be omitted.
-
-```text
-Config/biocroxytest/inputs: dev/example-code.R
-    reference-data
-```
-
-Use existing paths relative to the package root. Retained paths must be
-ordinary files or directories. A declaration can retain build-excluded
-development inputs, while excluded R sources stay excluded. Remove newly
-excluded files from any `Collate` fields before checking generated tests
-or installing the package. Direct calls to `roxygen2::roxygenise()` use
-roxygen2's configured loader, which can load ignored R files before the
-test roclet selects its sources. Older replay records continue to use
-the original source selection and full-checkout fingerprint.
-
-Set `timeout` in seconds to limit each isolated R process. A timeout
-leaves the case incomplete and the plan continues. The limit includes
-package loading and suite hooks. Fixture preparation happens first.
-
-## Require cases in CI
-
-Pass the required IDs explicitly so a missing case fails the check.
-
-```{r require-cases, eval=FALSE}
-required <- c("arithmetic/small", "arithmetic/large")
-evidence <- biocroxytest::run_test_plan(ids = required, timeout = 60)
-biocroxytest::check_test_plan(evidence, required)
-```
-
-An uncaught error from either call gives a nonzero exit status in
-`Rscript`. The check requires `completed` and zero recorded warnings for
-each required case. Use `allow_warnings = TRUE` to accept recorded warnings
-for completed cases. Reports created before warning counts were recorded
-need a fresh run to satisfy the default policy.
-
-In a temporary copy of [dar at `27c4da2`](https://github.com/MicrobialGenomics-IrsicaixaOrg/dar/blob/27c4da2/tests/testthat/test-model-adapters.R),
-we ran its DESeq2 contrast test as a named case. The assertions passed
-with DESeq2 installed. A deliberate skip to simulate an unavailable
-dependency produced a skipped result in testthat and failed the explicit
-required-case policy. This is useful for CI jobs where a particular
-dependency must be exercised.
-
-## Compare runs across environments
-
-Save a report from each CI job or R session. Use the same source,
-fixtures, seed and IDs for a comparison across R versions or platforms.
-For different backends, include their case IDs in the expected list.
-
-```{r save-case-report, eval=FALSE}
-ids <- c("arithmetic/small", "arithmetic/large")
-report <- biocroxytest::run_test_plan(ids = ids, seed = 42L)
-saveRDS(report, "../test-evidence.rds")
-```
-
-Retrieve the reports as `left-evidence.rds` and `right-evidence.rds`
-and match the expected IDs to each report.
-Here `NA` means an expected ID has no row in the report. A status of
-`missing` means the runner did have a row for the case and found its
-generated test or result missing. Choose the expected IDs independently
-of the reports so the table also shows IDs absent from both runs.
-Older reports without warning counts show `NA` in that column.
-
-```{r compare-case-reports, eval=FALSE}
-left <- readRDS("left-evidence.rds")
-right <- readRDS("right-evidence.rds")
-expected <- c("arithmetic/small", "arithmetic/large")
-
-summarize_run <- function(report) {
-  cases <- report$cases[match(expected, report$cases$id), ]
-  warnings <- cases$warnings
-  if (is.null(warnings)) warnings <- rep(NA_integer_, length(expected))
-  context <- function(field) {
-    vapply(expected, function(id) {
-      value <- report$environments[[id]][[field]]
-      if (is.null(value)) NA_character_ else value
-    }, character(1))
-  }
-  data.frame(
-    id = expected, status = cases$status, warnings = warnings,
-    r_version = context("r_version"), platform = context("platform")
-  )
+```{r verify-suites, include=FALSE}
+for (result in list(ordinary, long)) {
+  summary <- as.data.frame(result)
+  stopifnot(sum(summary$passed) == 4L, sum(summary$failed) == 0L, !any(summary$error))
 }
-
-comparison <- merge(summarize_run(left), summarize_run(right),
-                    by = "id", suffixes = c(".left", ".right"), all = TRUE)
-comparison
-c(left = left$revision, right = right$revision)
 ```
 
-Record the source commit and fixture checksums for each job. The revision
-hash includes R's serialization header, so identical inputs can produce
-different hashes when the jobs use different R versions.
-For a particular ID, look in `report$environments[[id]]$packages` for
-loaded package versions and in `report$fixtures[[id]]` for declared
-fixture checks. A dependency version describes the run environment.
-Use an assertion on the backing class in a backend-specific test to
-confirm which implementation ran.
+## Run just one case
 
-## Replay a failed case
+During development, select the case you are working on:
 
-The [sample-alignment walkthrough](replay-walkthrough.html) runs a failing
-case, reproduces the failure from a replay record and checks the fix.
-
-If the case is `failed`, save its record outside the package tree so it
-does not change the source fingerprint.
-
-```{r replay-failure, eval=FALSE}
-record <- biocroxytest::write_test_replay(
-  evidence, "arithmetic/large", "../arithmetic-failure.rds"
-)
-record$command
-replayed <- biocroxytest::replay_test_case("../arithmetic-failure.rds")
-replayed$comparison
+```{r select-case, message=FALSE}
+biocroxytest::run_test_case("sample-alignment/hdf5", path = pkg)
 ```
 
-Replay checks the package revision and fixture identities, restores the
-base R seed and reports whether failure messages and available source
-locations matched. It also reports changes to the recorded environment.
-Use the same package source and fixtures, and set backend-specific seeds
-in the case setup when needed.
+This runs the selected generated test with its suite's helpers. Regenerate
+with `roxygen2::roxygenise(pkg)` whenever you change the case declaration.
+Use a full suite run for custom runners or tests that depend on earlier tests.
 
-## Reduce a paired failure
+## Record whether both cases completed
 
-For a paired SummarizedExperiment with two conditions and one sample per
-condition per pair, `biocroxytest::reduce_paired_failure()` can find a
-smaller regression fixture. Supply the pair and condition columns, an
-additive design and a checker that returns a stable identifier for the
-target failure or `NULL` when it is absent.
+Use `run_test_plan()` when you want a structured report. It runs each case in
+its own R session and temporary package copy, so each result has an execution
+context. This is optional; ordinary testthat runs remain the basic workflow.
 
-```{r reduce-paired, eval=FALSE}
-reduced <- biocroxytest::reduce_paired_failure(
-  x, pair = "subject", condition = "visit", design = ~ subject + visit,
-  check = check_known_failure
-)
-dim(reduced$data)
-reduced$failure
+```{r evidence, message=FALSE}
+ids <- c("sample-alignment/memory", "sample-alignment/hdf5")
+evidence <- biocroxytest::run_test_plan(pkg, ids = ids, seed = 42L)
+evidence$cases[c("id", "suite", "status")]
+biocroxytest::check_test_plan(evidence, required = ids)
 ```
 
-The reducer removes rows and whole pairs, keeps a full-rank design with
-positive residual degrees of freedom, and checks the final subset again.
-Review it before writing an ordinary test of the expected correct
-behavior. An HDF5-backed subset still uses its backing file.
+Both statuses should be `completed`. A passing assertion followed by a skip
+does not count as complete. `check_test_plan()` requires both IDs to complete
+without recorded warnings, and raises an error otherwise. This can make a
+backend case mandatory in CI instead of silently accepting a skip.
+
+**Next:** [introduce, record and replay a sample-ordering failure](replay-walkthrough.html).
+For specific tasks, see [fixture files](test-fixtures.html) and
+[CI, plan comparisons and source-copy rules](test-workflows.html).
+
+```{r cleanup, include=FALSE}
+pkgload::unload("samplealignment")
+unlink(pkg, recursive = TRUE)
+```
