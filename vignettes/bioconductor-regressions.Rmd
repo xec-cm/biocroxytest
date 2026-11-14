@@ -157,8 +157,8 @@ Both historical failures replayed with matching signatures. To check a
 fix, run `run_test_plan(pkg, ids = id)` in the fixed library and pass its
 report to `check_test_plan(report, required = id)`. The reduction here
 was manual. The named tests reuse the same small inputs and assertions
-against each version, and to distinguish an incorrect result from a case
-that could not run.
+across versions and distinguish an incorrect result from a case that
+could not run.
 
 ```{r cleanup}
 unlink(work, recursive = TRUE, expand = FALSE)
