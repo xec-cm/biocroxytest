@@ -134,8 +134,10 @@ For the HDF5 case, both runs used HDF5Array 1.33.5
 To repeat a historical failure, install the linked revision in an
 isolated library with its dependencies and start a fresh R session with
 that library first. Run the setup, case and generation chunks above, then
-use the chunk below in place of the current-dependency check. Keep the
-versioned library and the source tree to replay the failure. Replay
+use the chunk below in place of the current-dependency check. Set `id`
+to the case from the table and compare the printed diagnostic to that
+row. To replay in a later session, use a persistent `work` directory in
+the setup and keep it together with the versioned library. Replay
 restores the case's seed and checks the source revision. The evidence
 records dependency versions for comparison.
 
@@ -153,8 +155,8 @@ stopifnot(isTRUE(replayed$comparison$same_failure))
 
 Both historical failures replayed with matching signatures. To check a
 fix, run `run_test_plan(pkg, ids = id)` in the fixed library and pass its
-report to `check_test_plan()`. The reduction here was manual. The named
-tests made it possible to check the same small inputs and assertions
+report to `check_test_plan(report, required = id)`. The reduction here
+was manual. The named tests reuse the same small inputs and assertions
 against each version, and to distinguish an incorrect result from a case
 that could not run.
 
