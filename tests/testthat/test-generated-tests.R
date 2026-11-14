@@ -141,7 +141,7 @@ test_that("excluded source files are obsolete for both roclets", {
 })
 
 test_that("roclets recover case-insensitive exceptions in example order", {
-  pkg <- new_generated_test_fixture()
+  pkg <- new_generated_test_fixture('"biocroxytest::tests_roclet"')
   withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
   writeLines("^R/(?!keep[.]R$|helper[.]R$).*[.]R$", file.path(pkg, ".Rbuildignore"))
   writeLines(c(
