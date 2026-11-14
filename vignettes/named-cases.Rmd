@@ -35,12 +35,16 @@ named_source <- system.file("examples", "steps", "named-cases.R",
                             package = "biocroxytest", mustWork = TRUE)
 file.copy(named_source, source_file, overwrite = TRUE)
 withr::with_dir(pkg, biocroxytest::use_longtests())
+writeLines("^\\.BBSoptions$", file.path(pkg, ".Rbuildignore"))
 ```
 
 The copy command replaces the first tutorial's `@tests` block with the
 following complete file. In your own package, you would edit the R source
 directly. `use_longtests()` creates the separate runner and enables
 `RunLongTests: TRUE` in `.BBSoptions`, preserving an existing runner.
+The final line keeps this build-system setting out of the example's source
+tarball. In an existing package, append that pattern to `.Rbuildignore`
+instead of replacing its other entries.
 
 ```{r named-source, code=readLines(source_file), eval=FALSE}
 ```
