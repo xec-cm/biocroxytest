@@ -9,6 +9,8 @@
 #' Replay checks the package revision and fixture availability and checksums
 #' before running the test. It restores the initial R seed and the recorded
 #' values of `CI`, `NOT_CRAN` and `TZ` in the test process.
+#' New records use the package input manifest to verify the revision.
+#' Older records still verify the full checkout using their original rules.
 #' The report records environment differences. Install matching R and
 #' package versions yourself. Control other environment settings and any
 #' random streams maintained outside base R in your test setup.
@@ -59,7 +61,7 @@ write_test_replay <- function(evidence, id, file) {
     cli::cli_abort("Evidence has no failed case with ID {.val {id}}.", call = NULL)
   }
   record <- list(
-    format = 1L,
+    format = if (is.null(evidence$revision_format)) 1L else evidence$revision_format,
     case = case,
     command = command,
     revision = evidence$revision,
@@ -112,15 +114,13 @@ valid_scalar_integer <- function(value) {
     is.finite(value) && abs(value) <= .Machine$integer.max && value == trunc(value)
 }
 
-verify_replay_revision <- function(path, replay) {
-  revision <- test_plan_revision(path)
+verify_replay_revision <- function(revision, replay) {
   if (!identical(revision, replay$revision)) {
     cli::cli_abort(
       "Package revision differs from the replay record.",
       class = "biocroxytest_replay_revision", call = NULL
     )
   }
-  revision
 }
 
 validate_replay_file <- function(file) {
@@ -131,7 +131,8 @@ validate_replay_file <- function(file) {
 
 validate_replay_record <- function(record) {
   fields <- c("id", "suite", "source", "path", "status", "detail")
-  if (!is.list(record) || !identical(record$format, 1L) ||
+  if (!is.list(record) || !is.integer(record$format) || length(record$format) != 1L ||
+      !record$format %in% c(1L, 2L) ||
       !is.data.frame(record$case) || nrow(record$case) != 1L ||
       !all(fields %in% names(record$case)) ||
       !all(vapply(record$case[fields], function(value) {

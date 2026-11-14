@@ -57,6 +57,8 @@ Replay from the matching package source with the recorded fixture inputs.
 Replay checks the package revision and fixture availability and checksums
 before running the test. It restores the initial R seed and the recorded
 values of \code{CI}, \code{NOT_CRAN} and \code{TZ} in the test process.
+New records use the package input manifest to verify the revision.
+Older records still verify the full checkout using their original rules.
 The report records environment differences. Install matching R and
 package versions yourself. Control other environment settings and any
 random streams maintained outside base R in your test setup.

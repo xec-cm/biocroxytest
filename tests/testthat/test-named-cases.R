@@ -71,7 +71,7 @@ test_that("case IDs survive source and suite moves and expose plan changes", {
   source <- file.path(pkg, "R/answer.R")
   writeLines(named_case_source(), source)
   cat("Collate: 'answer.R'\n", file = file.path(pkg, "DESCRIPTION"), append = TRUE)
-  writeLines("^R/ignored[.]R$", file.path(pkg, ".Rbuildignore"))
+  writeLines("^r/ignored[.]r$", file.path(pkg, ".Rbuildignore"))
   writeLines(named_case_source(), file.path(pkg, "R/ignored.R"))
   before <- test_case_plan(pkg)
   unlink(source)

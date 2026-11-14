@@ -31,10 +31,12 @@ The check regenerates tests in a temporary copy using the package's
 roxygen configuration and a fresh R session. It checks both suites for
 \code{\link[=tests_roclet]{tests_roclet()}} or only the long suite for \code{\link[=longtests_roclet]{longtests_roclet()}}. Install
 the package's development dependencies before running the check. The
-checkout is left in place and \code{.git} is excluded from the copy. Use a
-checkout without symbolic links, junctions, or special files, apart from
-excluded Git metadata. Roxygen loads package code, so check packages
-whose code you trust. LF and CRLF are equivalent in generated files.
+checkout is left in place. The copy includes package inputs and the two
+test suites. See \code{vignette("named-cases")} for the input roots and how to
+declare additional files with \code{Config/biocroxytest/inputs}. Retained paths
+must be ordinary files and directories. Roxygen loads package code, so
+check packages whose code you trust. LF and CRLF are equivalent in
+generated files.
 }
 \examples{
 pkg <- tempfile("generated-test-example-")

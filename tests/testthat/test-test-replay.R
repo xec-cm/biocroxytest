@@ -23,6 +23,7 @@ test_that("a replay restores the seed before suite setup and compares the failur
   record <- withr::with_dir(dirname(file), write_test_replay(evidence, id, basename(file)))
   expect_identical(readRDS(file), record)
   expect_identical(record$revision, evidence$revision)
+  expect_identical(record$format, 2L)
   expect_match(record$command, "biocroxytest::replay_test_case", fixed = TRUE)
   from_command <- withr::with_dir(pkg, eval(parse(text = record$command)))
   expect_true(from_command$comparison$same_failure)
@@ -36,6 +37,8 @@ test_that("a replay restores the seed before suite setup and compares the failur
   expect_identical(replayed$cases$detail, evidence$cases$detail)
   expect_identical(.Random.seed, caller_seed)
   expect_identical(Sys.getenv("CI"), "true")
+  writeLines("unrelated notes", file.path(pkg, "notes.txt"))
+  expect_true(replay_test_case(file, pkg)$comparison$same_failure)
 
   other_seed <- record
   other_seed$context$seed <- 99L
@@ -84,6 +87,30 @@ test_that("identical messages from different assertions are different failures",
   replayed <- replay_test_case(file, pkg)
   expect_identical(replayed$cases$detail, evidence$cases$detail)
   expect_false(replayed$comparison$same_failure)
+})
+
+test_that("format 1 replay preserves old source selection and revision rules", {
+  source <- c(
+    "#' @testCases legacy",
+    "#' list(cases = list(old = list(suite = 'tests')), test = { expect_identical(answer(), 1L) })",
+    "answer <- function() 42L"
+  )
+  pkg <- new_evidence_package(source)
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  file <- withr::local_tempfile(fileext = ".rds")
+  report <- run_test_plan(pkg, seed = 42L)
+  # This spelling did not match when format 1 selected sources.
+  writeLines("^r/ANSWER[.]r$", file.path(pkg, ".Rbuildignore"))
+  writeLines("old revision input", file.path(pkg, "notes.txt"))
+  report$revision <- legacy_test_revision(pkg)
+  report$revision_format <- NULL
+  record <- write_test_replay(report, "legacy/old", file)
+
+  expect_identical(record$format, 1L)
+  expect_equal(nrow(test_case_plan(pkg)), 0L)
+  expect_true(replay_test_case(file, pkg)$comparison$same_failure)
+  writeLines("changed input", file.path(pkg, "notes.txt"))
+  expect_error(replay_test_case(file, pkg), class = "biocroxytest_replay_revision")
 })
 
 test_that("a replay uses the recorded fixture availability", {

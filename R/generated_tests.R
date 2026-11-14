@@ -9,10 +9,12 @@
 #' roxygen configuration and a fresh R session. It checks both suites for
 #' [tests_roclet()] or only the long suite for [longtests_roclet()]. Install
 #' the package's development dependencies before running the check. The
-#' checkout is left in place and `.git` is excluded from the copy. Use a
-#' checkout without symbolic links, junctions, or special files, apart from
-#' excluded Git metadata. Roxygen loads package code, so check packages
-#' whose code you trust. LF and CRLF are equivalent in generated files.
+#' checkout is left in place. The copy includes package inputs and the two
+#' test suites. See `vignette("named-cases")` for the input roots and how to
+#' declare additional files with `Config/biocroxytest/inputs`. Retained paths
+#' must be ordinary files and directories. Roxygen loads package code, so
+#' check packages whose code you trust. LF and CRLF are equivalent in
+#' generated files.
 #'
 #' @param path Path to the package root.
 #' @return `generated_test_inventory()` returns a data frame with `suite`,
@@ -43,7 +45,9 @@ check_generated_tests <- function(path = ".") {
   path <- test_package_path(path)
   copy <- test_package_copy_path(path)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
-  copy_test_package(path, copy)
+  manifest <- test_package_manifest(path)
+  check_test_collate(path, manifest)
+  copy_test_package(path, copy, manifest)
 
   before <- collect_test_inventory(copy)
   contents <- stats::setNames(lapply(file.path(copy, before$path), read_test_bytes), before$path)
@@ -81,6 +85,20 @@ test_package_path <- function(path) {
   fs::path_real(path)
 }
 
+check_test_collate <- function(path, manifest) {
+  fields <- c("Collate", "Collate.unix", "Collate.windows")
+  listed <- test_collate_sources(path, fields)
+  present <- listed[file.exists(file.path(path, listed))]
+  stale <- setdiff(present, manifest$path)
+  if (length(stale)) {
+    cli::cli_abort(c(
+      "Excluded R sources are listed in {.file DESCRIPTION}: {.file {stale}}.",
+      i = "Remove them from the Collate fields before regenerating tests or installing the package."
+    ), class = "biocroxytest_test_check_input", call = NULL)
+  }
+  invisible(NULL)
+}
+
 collect_test_inventory <- function(path, suites = c("tests", "longtests")) {
   rows <- lapply(suites, function(suite) {
     directory <- file.path(suite, "testthat")
@@ -114,26 +132,6 @@ collect_test_inventory <- function(path, suites = c("tests", "longtests")) {
                                    path = character())), rows))
 }
 
-copy_test_package <- function(from, to) {
-  fs::dir_create(to)
-  entries <- fs::dir_ls(from, all = TRUE)
-  entries <- entries[basename(entries) != ".git"]
-  types <- fs::file_info(entries)$type
-  unsupported <- which(!types %in% c("file", "directory"))
-  if (length(unsupported)) {
-    entry <- entries[unsupported[1L]]
-    cli::cli_abort(c(
-      "Cannot copy linked or special file {.file {entry}}.",
-      i = "Run the check from a checkout with ordinary files and directories."
-    ), class = "biocroxytest_test_check_input", call = NULL)
-  }
-  files <- entries[types == "file"]
-  fs::file_copy(files, file.path(to, basename(files)))
-  for (directory in entries[types == "directory"]) {
-    copy_test_package(directory, file.path(to, basename(directory)))
-  }
-}
-
 regenerate_test_copy <- function(copy) {
   generator <- getNamespaceInfo(asNamespace("biocroxytest"), "path")
   installed <- file.exists(file.path(generator, "Meta", "package.rds"))
@@ -157,7 +155,8 @@ regenerate_test_copy <- function(copy) {
     error = function(e) {
       cli::cli_abort(c(
         "Could not regenerate tests in the temporary package copy.",
-        i = "Run {.code roxygen2::roxygenise()} to diagnose the generation error."
+        i = "Run {.code roxygen2::roxygenise()} in the checkout to diagnose the error.",
+        i = "If that succeeds, declare any extra generation inputs in {.field Config/biocroxytest/inputs}."
       ), class = "biocroxytest_test_regeneration_error", parent = e, call = NULL)
     }
   )
