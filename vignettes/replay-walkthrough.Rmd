@@ -120,3 +120,6 @@ temporary and can be removed together.
 ```{r cleanup}
 unlink(work, recursive = TRUE)
 ```
+
+See [two historical Bioconductor regressions](bioconductor-regressions.html)
+for reusable checks against older and fixed dependency versions.

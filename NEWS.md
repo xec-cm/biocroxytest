@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Add reusable checks and replay results for two historical DelayedArray
+  regressions, including sparse conversion from a TENx HDF5 file (#40).
+
 * Add an executable sample-alignment walkthrough that records and replays
   a failing named case and verifies the fix (#39).
 

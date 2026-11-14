@@ -9,6 +9,7 @@ articles:
   - biocroxytest
   - named-cases
   - replay-walkthrough
+  - bioconductor-regressions
 reference:
 - title: Generate and check tests
   contents:
