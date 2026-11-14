@@ -197,6 +197,7 @@ Here `NA` means an expected ID has no row in the report. A status of
 `missing` means the runner did have a row for the case and found its
 generated test or result missing. Choose the expected IDs independently
 of the reports so the table also shows IDs absent from both runs.
+Older reports without warning counts show `NA` in that column.
 
 ```{r compare-case-reports, eval=FALSE}
 left <- readRDS("left-evidence.rds")
@@ -205,6 +206,8 @@ expected <- c("arithmetic/small", "arithmetic/large")
 
 summarize_run <- function(report) {
   cases <- report$cases[match(expected, report$cases$id), ]
+  warnings <- cases$warnings
+  if (is.null(warnings)) warnings <- rep(NA_integer_, length(expected))
   context <- function(field) {
     vapply(expected, function(id) {
       value <- report$environments[[id]][[field]]
@@ -212,7 +215,7 @@ summarize_run <- function(report) {
     }, character(1))
   }
   data.frame(
-    id = expected, status = cases$status, warnings = cases$warnings,
+    id = expected, status = cases$status, warnings = warnings,
     r_version = context("r_version"), platform = context("platform")
   )
 }

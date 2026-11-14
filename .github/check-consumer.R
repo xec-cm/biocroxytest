@@ -48,7 +48,7 @@ check_consumer <- function() {
   stopifnot(all(changed$cases$status == "failed"), !identical(changed$revision, evidence$revision))
   writeBin(charToRaw("3\n6\n"), fixture)
 
-  # Stage only the consumer's test dependency and its required dependencies.
+  # Stage only the consumer's test dependencies and their required dependencies.
   consumer_lib <- file.path(scratch, "library")
   dir.create(consumer_lib)
   dependencies <- tools::package_dependencies(
