@@ -8,6 +8,7 @@ articles:
   contents:
   - biocroxytest
   - named-cases
+  - replay-walkthrough
 reference:
 - title: Generate and check tests
   contents:
