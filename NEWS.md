@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Verify installed consumer tests in CI and require roxygen2 7.1.2 or newer
+  for conditional examples (#34).
+
 * Pilot `reduce_paired_failure()` for finding a smaller SummarizedExperiment
   that retains whole pairs, an estimable design and a specific failure (#15).
 
