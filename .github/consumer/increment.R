@@ -16,6 +16,12 @@
 #'     ordinary = list(suite = "tests", setup = { expected <- 3L }),
 #'     long = list(suite = "longtests", setup = { expected <- 6L })
 #'   ),
-#'   test = { expect_identical(increment(suite_input()), expected) }
+#'   test = {
+#'     fixture <- fs::path_package("biocroxytestconsumer", "extdata", "expected.txt")
+#'     expect_identical(unname(tools::md5sum(fixture)), "8c213d966298ecd26ef240b3703d46e9")
+#'     values <- scan(fixture, what = integer(), quiet = TRUE)
+#'     expect_true(expected %in% values)
+#'     expect_identical(increment(suite_input()), expected)
+#'   }
 #' )
 increment <- function(x) x + 1L
