@@ -35,8 +35,8 @@ user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
 package loading and suite hooks. Defaults to \code{Inf}. Copying files and
 preparing fixtures take place before this limit starts. After a timeout
 the plan continues with the remaining cases. It attempts to stop child
-processes and records any cleanup error with the timeout. The maximum finite limit
-is \code{.Machine$integer.max / 1000} seconds.}
+processes and records any cleanup error with the timeout. The maximum
+finite limit is \code{.Machine$integer.max / 1000} seconds.}
 }
 \value{
 \code{write_test_replay()} returns the saved record invisibly.

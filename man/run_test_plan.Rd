@@ -31,8 +31,8 @@ case. With \code{NULL}, each case gets a seed in its own R process.}
 package loading and suite hooks. Defaults to \code{Inf}. Copying files and
 preparing fixtures take place before this limit starts. After a timeout
 the plan continues with the remaining cases. It attempts to stop child
-processes and records any cleanup error with the timeout. The maximum finite limit
-is \code{.Machine$integer.max / 1000} seconds.}
+processes and records any cleanup error with the timeout. The maximum
+finite limit is \code{.Machine$integer.max / 1000} seconds.}
 }
 \value{
 A list with \code{revision}, a content fingerprint, \code{cases}, a data

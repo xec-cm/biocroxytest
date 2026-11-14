@@ -33,8 +33,8 @@
 #'   package loading and suite hooks. Defaults to `Inf`. Copying files and
 #'   preparing fixtures take place before this limit starts. After a timeout
 #'   the plan continues with the remaining cases. It attempts to stop child
-#'   processes and records any cleanup error with the timeout. The maximum finite limit
-#'   is `.Machine$integer.max / 1000` seconds.
+#'   processes and records any cleanup error with the timeout. The maximum
+#'   finite limit is `.Machine$integer.max / 1000` seconds.
 #' @return A list with `revision`, a content fingerprint, `cases`, a data
 #'   frame containing the selected case IDs, suites, paths, statuses,
 #'   durations in seconds, diagnostics and counts of distinct warning messages
@@ -232,7 +232,7 @@ run_isolated_case <- function(args, env, timeout) {
     execute_test_case, args, user_profile = FALSE, error = "error", env = env,
     stdout = file.path(workspace, "output"), stderr = "2>&1"
   )
-  on.exit(child$kill(), add = TRUE, after = FALSE)
+  on.exit(tryCatch(child$kill(), finally = child$finalize()), add = TRUE, after = FALSE)
   child$wait(as.integer(ceiling(timeout * 1000)))
   if (!child$is_alive()) { return(child$get_result()) }
 
