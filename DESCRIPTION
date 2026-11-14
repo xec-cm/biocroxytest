@@ -1,6 +1,6 @@
 Package: biocroxytest
 Title: Generate Ordinary and Long Tests for Bioconductor Packages
-Version: 1.1.0
+Version: 1.9.1
 Authors@R: 
     c(person(given = "Francesc",
              family = "Catala-Moll",
