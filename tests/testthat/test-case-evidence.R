@@ -191,11 +191,23 @@ test_that("suite hooks see the original generated file and cannot change the rec
   expect_named(skipped$environments, "revision/selected")
 })
 
+test_that("isolated case options are set after package loading", {
+  pkg <- new_evidence_package(evidence_revision_source())
+  withr::defer(unlink(pkg, recursive = TRUE))
+  writeLines(c(
+    ".onLoad <- function(libname, pkgname) {",
+    "  options(biocroxytest.case_event = NULL, biocroxytest.fixture_paths = NULL)",
+    "}"
+  ), file.path(pkg, "R", "onload.R"))
+  report <- run_test_plan(pkg, ids = "revision/selected")
+  expect_true(check_test_plan(report, "revision/selected"))
+})
+
 test_that("the CI policy distinguishes recorded and handled warnings", {
   source <- c(
     "#' @testCases warnings",
     "#' list(cases = list(one = list(suite = 'tests')), test = {",
-    "#'   warning('case warning')",
+    "#'   signalCondition(simpleWarning('case warning'))",
     "#'   expect_warning(warning('handled warning'), 'handled warning')",
     "#'   expect_true(TRUE)",
     "#' })",
@@ -210,7 +222,7 @@ test_that("the CI policy distinguishes recorded and handled warnings", {
   expect_identical(report$cases$warnings, 2L)
   expect_match(report$cases$detail, "case warning")
   expect_match(report$cases$detail, "hook warning")
-  expect_error(check_test_plan(report, "warnings/one"), "2 recorded warning")
+  expect_error(check_test_plan(report, "warnings/one"), "2 distinct warning")
   expect_true(check_test_plan(report, "warnings/one", allow_warnings = TRUE))
 
   report$cases$warnings <- NULL
@@ -221,11 +233,15 @@ test_that("the CI policy distinguishes recorded and handled warnings", {
   expect_error(check_test_plan(report, "warnings/one", allow_warnings = NA), "TRUE or FALSE")
 })
 
-test_that("a timed-out case leaves the original intact and the plan continues", {
+test_that("a timed-out case is cleaned up and the plan continues", {
+  marker <- withr::local_tempfile()
   source <- c(
     "#' @testCases limits",
     "#' list(cases = list(",
-    "#'   slow = list(suite = 'tests', setup = { Sys.sleep(60) }),",
+    "#'   slow = list(suite = 'tests', setup = {",
+    paste0("#'     writeLines(tempdir(), ", encodeString(marker, quote = '"'), ")"),
+    "#'     Sys.sleep(60)",
+    "#'   }),",
     "#'   next_case = list(suite = 'longtests')",
     "#' ), test = { expect_identical(case_value(), 42L) })",
     "answer <- function() 42L"
@@ -239,9 +255,12 @@ test_that("a timed-out case leaves the original intact and the plan continues", 
   expect_identical(report$cases$id, ids)
   expect_identical(report$cases$status, c("incomplete", "completed"))
   expect_match(report$cases$detail[1L], "timed out after 8 seconds", fixed = TRUE)
+  expect_true(file.exists(marker))
+  expect_false(dir.exists(readLines(marker, warn = FALSE)))
   expect_identical(report$cases$warnings, c(NA_integer_, 0L))
   expect_error(check_test_plan(report, ids), "limits/slow: incomplete")
   expect_true(check_test_plan(report, ids[2L]))
   expect_identical(evidence_package_contents(pkg), before)
   expect_error(run_test_plan(pkg, timeout = 0), "positive number of seconds")
+  expect_error(run_test_plan(pkg, timeout = 1e7), "positive number of seconds")
 })

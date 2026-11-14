@@ -32,10 +32,12 @@
 #' @param timeout Maximum seconds for each isolated R process, including
 #'   package loading and suite hooks. Defaults to `Inf`. Copying files and
 #'   preparing fixtures take place before this limit starts. After a timeout
-#'   the plan continues with the remaining cases.
+#'   the plan continues with the remaining cases. It attempts to stop child
+#'   processes and records any cleanup error with the timeout. The maximum finite limit
+#'   is `.Machine$integer.max / 1000` seconds.
 #' @return A list with `revision`, a content fingerprint, `cases`, a data
 #'   frame containing the selected case IDs, suites, paths, statuses,
-#'   durations in seconds, diagnostics and recorded warning counts
+#'   durations in seconds, diagnostics and counts of distinct warning messages
 #'   (`NA` when unavailable), and `environments`, the R
 #'   version, platform, operating system, locale and loaded package versions
 #'   observed at the end of execution, by case ID. The duration is elapsed
@@ -66,8 +68,12 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
                               seed, timeout, replay = NULL) {
   validate_fixture_run_options(download_fixtures, fixture_cache)
   if (!is.numeric(timeout) || length(timeout) != 1L || !is.null(dim(timeout)) ||
-      is.na(timeout) || timeout <= 0) {
-    cli::cli_abort("{.arg timeout} must be a positive number of seconds or Inf.", call = NULL)
+      is.na(timeout) || timeout <= 0 ||
+      (is.finite(timeout) && timeout > .Machine$integer.max / 1000)) {
+    cli::cli_abort(
+      "{.arg timeout} must be a positive number of seconds up to .Machine$integer.max / 1000, or Inf.",
+      call = NULL
+    )
   }
   path <- test_package_path(path)
   snapshot <- test_package_copy_path(path)
@@ -187,25 +193,16 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
   }
 
   file <- prepared$file
+  args <- list(
+    path = prepared$copy, file = file, description = case$description,
+    paths = fixture_paths(fixtures),
+    evidence = list(code = case$code, location = location,
+                    checksum = unname(tools::md5sum(file)), seed = seed)
+  )
+  env <- c(callr::rcmd_safe_env(), replay$context$settings)
   started <- proc.time()[["elapsed"]]
   run <- tryCatch(
-    callr::r(
-      execute_test_case,
-      args = list(
-        path = prepared$copy, file = file, description = case$description,
-        paths = fixture_paths(fixtures),
-        evidence = list(code = case$code, location = location,
-                        checksum = unname(tools::md5sum(file)), seed = seed)
-      ),
-      user_profile = FALSE,
-      system_profile = FALSE,
-      error = "error",
-      timeout = timeout,
-      env = c(callr::rcmd_safe_env(), replay$context$settings)
-    ),
-    callr_timeout_error = function(error) {
-      list(problem = sprintf("The case timed out after %s seconds.", timeout))
-    },
+    run_isolated_case(args, env, timeout),
     error = function(error) list(problem = conditionMessage(error))
   )
   if (is.null(run)) {
@@ -222,18 +219,47 @@ record_test_case <- function(snapshot, case, download_fixtures, fixture_cache, s
   run
 }
 
+run_isolated_case <- function(args, env, timeout) {
+  if (is.infinite(timeout)) {
+    return(callr::r(execute_test_case, args, user_profile = FALSE, error = "error", env = env))
+  }
+
+  workspace <- withr::local_tempdir("biocroxytest-process-")
+  env <- c(env, TMPDIR = workspace, TMP = workspace, TEMP = workspace)
+  # Workers can inherit the R process's streams. Redirect them to a file so
+  # inherited connections cannot prevent the parent from ending the wait.
+  child <- callr::r_bg(
+    execute_test_case, args, user_profile = FALSE, error = "error", env = env,
+    stdout = file.path(workspace, "output"), stderr = "2>&1"
+  )
+  on.exit(child$kill(), add = TRUE, after = FALSE)
+  child$wait(as.integer(ceiling(timeout * 1000)))
+  if (!child$is_alive()) { return(child$get_result()) }
+
+  problem <- sprintf("The case timed out after %s seconds.", timeout)
+  cleanup <- tryCatch({
+    # Capture handles while the R process is alive, before workers can be
+    # reparented. Handles retain process identities even if a PID is reused.
+    parent <- ps::ps_handle(child$get_pid())
+    workers <- ps::ps_children(parent, recursive = TRUE)
+    child$kill()
+    if (length(workers)) { ps::ps_kill(workers, grace = 0) }
+    NULL
+  }, error = conditionMessage)
+  list(problem = paste(c(problem, cleanup), collapse = "\n"))
+}
+
 execute_test_case <- function(path, file, description, paths, reporter = "summary",
                               evidence = NULL) {
   run_file <- function(reporter) {
-    package <- read.dcf(file.path(path, "DESCRIPTION"), fields = "Package")[[1L]]
-    withr::local_options(list(biocroxytest.fixture_paths = paths))
-    roxygen2::load_pkgload(path)
-    if (utils::packageVersion("testthat") < "3.3.0") {
-      stop("Running a named case requires testthat 3.3.0 or newer.", call. = FALSE)
-    }
     testthat::test_file(file, reporter = reporter, desc = description, package = package)
   }
-  if (is.null(evidence)) { return(invisible(run_file(reporter))) }
+  package <- read.dcf(file.path(path, "DESCRIPTION"), fields = "Package")[[1L]]
+  if (is.null(evidence)) {
+    withr::local_options(list(biocroxytest.fixture_paths = paths))
+    roxygen2::load_pkgload(path)
+    return(invisible(run_file(reporter)))
+  }
 
   setwd(path)
   code <- evidence$code
@@ -312,8 +338,13 @@ execute_test_case <- function(path, file, description, paths, reporter = "summar
   )$new()
 
   problem <- tryCatch(withCallingHandlers({
+    roxygen2::load_pkgload(path)
+    if (utils::packageVersion("testthat") < "3.3.0") {
+      stop("Running a named case requires testthat 3.3.0 or newer.", call. = FALSE)
+    }
     withr::local_options(
-      list(biocroxytest.case_event = function(event) { state[[event]] <- TRUE })
+      list(biocroxytest.case_event = function(event) { state[[event]] <- TRUE },
+           biocroxytest.fixture_paths = paths)
     )
 
     run_file(reporter)
@@ -330,8 +361,9 @@ execute_test_case <- function(path, file, description, paths, reporter = "summar
   passed <- any(vapply(expectations, inherits, logical(1), "expectation_success"))
   failed <- any(broken)
   skipped <- any(vapply(expectations, inherits, logical(1), "expectation_skip"))
-  warnings <- length(state$suite_warnings) +
-    sum(vapply(expectations, inherits, logical(1), "expectation_warning"))
+  recorded_warnings <- Filter(function(cnd) inherits(cnd, "expectation_warning"), expectations)
+  warnings <- unique(c(state$suite_warnings,
+                       vapply(recorded_warnings, conditionMessage, character(1))))
   diagnostics <- Filter(function(cnd) !inherits(cnd, "expectation_success"), expectations)
   messages <- c(problem, state$suite_warnings, vapply(diagnostics, conditionMessage, character(1)))
   detail <- paste(unique(messages), collapse = "\n")
@@ -394,7 +426,7 @@ execute_test_case <- function(path, file, description, paths, reporter = "summar
 
   list(
     status = status, duration = if (is.null(problem)) state$duration else NA_real_,
-    detail = detail, warnings = warnings, environment = environment,
+    detail = detail, warnings = length(warnings), environment = environment,
     replay = list(seed = as.integer(seed), rng = rng, settings = settings, failures = failures)
   )
 }

@@ -43,7 +43,7 @@ check_test_plan <- function(evidence, required, allow_warnings = FALSE) {
     counts <- counts[selected]
     reason[completed & is.na(counts)] <- "warning count unavailable"
     warned <- which(completed & !is.na(counts) & counts != 0)
-    reason[warned] <- paste(counts[warned], "recorded warning(s)")
+    reason[warned] <- paste(counts[warned], "distinct warning message(s)")
   }
   problems <- !is.na(reason)
   if (any(problems)) {

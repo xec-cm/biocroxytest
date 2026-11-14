@@ -30,12 +30,14 @@ case. With \code{NULL}, each case gets a seed in its own R process.}
 \item{timeout}{Maximum seconds for each isolated R process, including
 package loading and suite hooks. Defaults to \code{Inf}. Copying files and
 preparing fixtures take place before this limit starts. After a timeout
-the plan continues with the remaining cases.}
+the plan continues with the remaining cases. It attempts to stop child
+processes and records any cleanup error with the timeout. The maximum finite limit
+is \code{.Machine$integer.max / 1000} seconds.}
 }
 \value{
 A list with \code{revision}, a content fingerprint, \code{cases}, a data
 frame containing the selected case IDs, suites, paths, statuses,
-durations in seconds, diagnostics and recorded warning counts
+durations in seconds, diagnostics and counts of distinct warning messages
 (\code{NA} when unavailable), and \code{environments}, the R
 version, platform, operating system, locale and loaded package versions
 observed at the end of execution, by case ID. The duration is elapsed
