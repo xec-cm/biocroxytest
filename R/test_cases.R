@@ -35,11 +35,12 @@
 #' test_case_plan(pkg)
 #' unlink(pkg, recursive = TRUE)
 test_case_plan <- function(path = ".") {
-  path <- test_package_path(path)
-  patterns <- test_build_exclusions(path)
-  files <- list.files(file.path(path, "R"), pattern = "[.][Rr]$")
-  sources <- paste0("R/", files, recycle0 = TRUE)
-  sources <- sources[!test_build_ignored(sources, patterns) & !test_build_ignored("R", patterns)]
+  plan_test_cases(test_package_path(path))
+}
+
+plan_test_cases <- function(path, legacy = FALSE) {
+  sources <- test_r_sources(path)
+  sources <- sources[!test_ignored_sources(sources, test_build_exclusions(path), legacy)]
   blocks <- lapply(file.path(path, sources), roxygen2::parse_file, env = NULL)
   collect_test_cases(unlist(blocks, recursive = FALSE))
 }
@@ -54,8 +55,10 @@ test_case_plan <- function(path = ".") {
 #' intact. Use a full suite run to review or update snapshots and exercise
 #' custom suite runners. The copy requires ordinary files and directories,
 #' as in [check_generated_tests()].
-#' The package is loaded from `path` in the current R session. To run a single
-#' case in an isolated process with a timeout, use [run_test_plan()] with its ID.
+#' The package code is loaded from `path` in the current R session. pkgload
+#' can load code excluded by `.Rbuildignore`. Tests, helpers and fixtures run
+#' from the copy. To also load the package code from the filtered copy in an
+#' isolated process with a timeout, use [run_test_plan()] with the case ID.
 #'
 #' @param id An exact case ID from [test_case_plan()].
 #' @param path Path to the source package root.
@@ -136,7 +139,9 @@ verify_generated_case <- function(file, case) {
 
 #' @importFrom roxygen2 roxy_tag_parse
 #' @export
-roxy_tag_parse.roxy_tag_testCases <- function(x) {
+roxy_tag_parse.roxy_tag_testCases <- function(x) x
+
+parse_test_case <- function(x) {
   lines <- strsplit(x$raw, "\n", fixed = TRUE)[[1L]]
   group <- if (length(lines)) trimws(lines[[1L]]) else ""
   if (!valid_case_name(group)) {
@@ -214,7 +219,8 @@ collect_test_cases <- function(blocks, check_origin = FALSE) {
     }
     tags
   })
-  groups <- unlist(groups, recursive = FALSE)
+  # Validate declarations after the planner or roclet has selected sources.
+  groups <- lapply(unlist(groups, recursive = FALSE), parse_test_case)
   group_names <- vapply(groups, function(tag) tag$val$group, character(1))
   duplicate <- anyDuplicated(group_names)
   if (duplicate) {

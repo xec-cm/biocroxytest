@@ -119,8 +119,11 @@ test_that("evidence selects exact IDs and fingerprints source and helper changes
   writeLines("unrelated note", file.path(pkg, "notes.txt"))
   writeLines("^INST/CACHE$", file.path(pkg, ".Rbuildignore"))
   dir.create(file.path(pkg, "inst", "cache"), recursive = TRUE)
+  dir.create(file.path(pkg, "src"))
   baseline <- run_test_plan(pkg, ids = character())
   writeLines("unrelated results", file.path(pkg, "inst", "cache", "output.tsv"))
+  writeLines("editor artifact", file.path(pkg, "R", ".DS_Store"))
+  writeLines("build artifact", file.path(pkg, "src", "answer.o"))
   writeLines("edited note", file.path(pkg, "notes.txt"))
   expect_identical(run_test_plan(pkg, ids = character())$revision, baseline$revision)
 

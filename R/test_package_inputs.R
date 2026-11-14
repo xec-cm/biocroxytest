@@ -6,39 +6,60 @@ test_build_exclusions <- function(path) {
   patterns[nzchar(patterns)]
 }
 
-test_build_ignored <- function(paths, patterns) {
+test_build_ignored <- function(paths, patterns, ignore_case = TRUE) {
   ignored <- rep(FALSE, length(paths))
   for (pattern in patterns) {
-    ignored <- ignored | grepl(pattern, paths, perl = TRUE, ignore.case = TRUE)
+    ignored <- ignored | grepl(pattern, paths, perl = TRUE, ignore.case = ignore_case)
   }
   ignored
 }
 
-filter_test_blocks <- function(blocks, path) {
+test_r_sources <- function(path) {
+  files <- list.files(file.path(path, "R"), pattern = "[.][Rr]$")
+  paste0("R/", files, recycle0 = TRUE)
+}
+
+test_ignored_sources <- function(sources, patterns, legacy = FALSE) {
+  test_build_ignored(sources, patterns, ignore_case = !legacy) |
+    (!legacy & test_build_ignored("R", patterns))
+}
+
+select_test_blocks <- function(blocks, path, env) {
   patterns <- test_build_exclusions(path)
   if (!length(patterns)) { return(blocks) }
-  files <- vapply(blocks, function(block) {
-    if (length(block$file)) {
-      as.character(fs::path_rel(block$file, start = path))
-    } else {
-      ""
-    }
+  sources <- test_r_sources(path)
+  excluded <- test_ignored_sources(sources, patterns)
+  # Roxygen can report the resolved target of a source link as the block origin.
+  origins <- normalizePath(file.path(path, sources), winslash = "/", mustWork = FALSE)
+  omitted <- setdiff(origins[excluded], origins[!excluded])
+  block_files <- vapply(blocks, function(block) {
+    if (length(block$file)) normalizePath(block$file, winslash = "/", mustWork = FALSE) else ""
   }, character(1))
-  excluded <- test_build_ignored(files, patterns) | test_build_ignored("R", patterns)
-  blocks[!(startsWith(files, "R/") & excluded)]
+  blocks <- blocks[!block_files %in% omitted]
+
+  # A case-sensitive negated pattern can make roxygen omit a retained source.
+  missed <- !excluded & test_build_ignored(sources, patterns, ignore_case = FALSE) &
+    !origins %in% block_files
+  recovered <- lapply(origins[missed], roxygen2::parse_file, env = env)
+  c(blocks, unlist(recovered, recursive = FALSE))
 }
 
 test_package_manifest <- function(path, legacy = FALSE) {
   metadata <- c("DESCRIPTION", "NAMESPACE", ".Rbuildignore", ".BBSoptions", ".Rinstignore")
   suites <- c("tests", "longtests")
   roots <- c(metadata, suites, "R", "src", "data", "inst", "man", "vignettes",
-             "demo", "po", "tools", "exec", "configure", "configure.win",
-             "cleanup", "cleanup.win", "LICENSE", "LICENSE.md", "LICENCE")
-  patterns <- extra <- ancestors <- character()
+             "demo", "po", "tools", "exec", "configure", "configure.win", "configure.ucrt",
+             "cleanup", "cleanup.win", "cleanup.ucrt", "LICENSE", "LICENSE.md", "LICENCE")
+  patterns <- extra <- retained <- ancestors <- character()
   if (!legacy) {
-    patterns <- test_build_exclusions(path)
+    artifacts <- c("(^|/)\\.DS_Store$", "~$", "\\.bak$", "\\.sw.$", "(^|/)\\.#[^/]*$",
+                   "(^|/)#[^/]*#$", "^src/.*\\.(d|o|obj|so|dll|dylib)$",
+                   "^src/Makedeps$", "^src/so_locations$")
+    patterns <- c(test_build_exclusions(path), artifacts)
     extra <- extra_test_inputs(path)
-    ancestors <- unique(unlist(lapply(strsplit(extra, "/", fixed = TRUE), function(parts) {
+    roxygen_inputs <- c("man-roxygen", "man/roxygen")
+    retained <- c(roxygen_inputs, extra)
+    ancestors <- unique(unlist(lapply(strsplit(retained, "/", fixed = TRUE), function(parts) {
       vapply(seq_len(length(parts) - 1L), function(i) {
         paste(parts[seq_len(i)], collapse = "/")
       }, character(1))
@@ -57,7 +78,7 @@ test_package_manifest <- function(path, legacy = FALSE) {
     if (!include_tree) {
       keep <- if (!nzchar(relative)) entries %in% roots else rep(!declared_only, length(entries))
       keep <- (keep & !ignored) |
-        paths %in% c(metadata, suites, extra, ancestors)
+        paths %in% c(metadata, suites, retained, ancestors)
       paths <- paths[keep & !excluded_code]
     } else {
       paths <- paths[!excluded_code]
@@ -69,7 +90,7 @@ test_package_manifest <- function(path, legacy = FALSE) {
       next_declared <- declared_only || test_build_ignored(directory, patterns) ||
         (!nzchar(relative) && !directory %in% roots)
       complete <- include_tree || directory %in% suites ||
-        (directory %in% extra && !grepl("^R(/|$)", directory))
+        (directory %in% retained && !grepl("^R(/|$)", directory))
       walk(directory, complete, next_declared)
     })
     do.call(rbind, c(list(data.frame(path = paths, directory = types == "directory")), children))

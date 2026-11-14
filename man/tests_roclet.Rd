@@ -27,6 +27,9 @@ for projects that want only the long test generator.
 
 With custom roclets, use the default \code{clean = FALSE}. The generator
 removes obsolete tests after validating both suites on every run.
+Test output follows the case-insensitive \code{.Rbuildignore} rules. A direct
+roxygen2 run still uses its configured package loader and may load ignored
+sources before the test roclet runs.
 }
 \examples{
 tests_roclet()

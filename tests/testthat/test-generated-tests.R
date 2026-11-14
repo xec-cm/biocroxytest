@@ -126,11 +126,46 @@ test_that("excluded source files are obsolete for both roclets", {
     stale <- expect_error(check_generated_fixture(pkg), class = "biocroxytest_stale_tests")
     expect_identical(stale$changes$path, outputs$path)
     expect_true(all(stale$changes$status == "obsolete"))
+    cat("Collate: 'ignored.R'\n", file = file.path(pkg, "DESCRIPTION"), append = TRUE)
+    expect_error(check_generated_fixture(pkg), "Remove them from the Collate fields",
+                 class = "biocroxytest_test_check_input")
+    description <- file.path(pkg, "DESCRIPTION")
+    writeLines(grep("^Collate:", readLines(description), invert = TRUE, value = TRUE), description)
+    cat("#' @testCases invalid declaration\nNULL\n", file = file.path(pkg, "R", "ignored.R"),
+        append = TRUE)
     roxygenise_fixture(pkg, clean = TRUE)
     expect_equal(nrow(generated_test_inventory(pkg)), 0L)
     expect_true(file.exists(file.path(pkg, "R", "ignored.R")))
     expect_true(check_generated_fixture(pkg))
   }
+})
+
+test_that("roclets retain sources with a case-insensitive exception", {
+  pkg <- new_generated_test_fixture('"biocroxytest::tests_roclet"')
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  writeLines("^R/(?!keep[.]R$).*[.]R$", file.path(pkg, ".Rbuildignore"))
+  writeLines(c(
+    "#' @testCases retained",
+    "#' list(cases = list(one = list(suite = 'tests')), test = { expect_true(TRUE) })",
+    "keep <- function() TRUE"
+  ), file.path(pkg, "R", "KEEP.R"))
+  roxygenise_fixture(pkg, load_code = roxygen2::load_pkgload)
+  expect_identical(test_case_plan(pkg)$id, "retained/one")
+  expect_identical(generated_test_inventory(pkg)$source, "R/KEEP.R")
+  expect_true(check_generated_fixture(pkg))
+})
+
+test_that("roclets omit tests from excluded source links", {
+  skip_on_os("windows")
+  pkg <- new_generated_test_fixture('"biocroxytest::tests_roclet"')
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  target <- file.path(pkg, "target.R")
+  writeLines(c("#' @tests expect_true(TRUE)", "target <- function() TRUE"), target)
+  if (!file.symlink(target, file.path(pkg, "R", "excluded.R"))) { skip("Cannot link fixture") }
+  writeLines("^r/EXCLUDED[.]r$", file.path(pkg, ".Rbuildignore"))
+  roxygenise_fixture(pkg, load_code = roxygen2::load_pkgload)
+  expect_equal(nrow(generated_test_inventory(pkg)), 0L)
+  expect_true(check_generated_fixture(pkg))
 })
 
 test_that("freshness keeps declared development inputs and skips unrelated links", {
@@ -139,15 +174,19 @@ test_that("freshness keeps declared development inputs and skips unrelated links
   )
   withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
   dir.create(file.path(pkg, "dev"))
+  dir.create(file.path(pkg, "man-roxygen"))
+  writeLines("^man-roxygen$", file.path(pkg, ".Rbuildignore"))
+  writeLines("#' @param x An input.", file.path(pkg, "man-roxygen", "input.R"))
   cat("Config/biocroxytest/inputs: dev/example code.R\n",
       file = file.path(pkg, "DESCRIPTION"), append = TRUE)
   script <- file.path(pkg, "dev", "example code.R")
   writeLines("x <- 1L", script)
   writeLines(c(
     "#' Example tests",
+    "#' @template input",
     "#' @example dev/example code.R",
     "#' @testexamples expect_identical(x, 1L)",
-    "answer <- function() 42L"
+    "answer <- function(x) 42L"
   ), file.path(pkg, "R", "answer.R"))
   roxygenise_fixture(pkg)
   link <- file.path(pkg, "dev", "unused")

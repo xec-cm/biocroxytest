@@ -79,12 +79,13 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
   snapshot <- test_package_copy_path(path)
   on.exit(unlink(snapshot, recursive = TRUE, expand = FALSE), add = TRUE)
   revision_format <- if (is.null(replay)) 2L else replay$format
-  manifest <- test_package_manifest(path, legacy = revision_format == 1L)
+  legacy <- revision_format == 1L
+  manifest <- test_package_manifest(path, legacy)
   copy_test_package(path, snapshot, manifest)
 
-  revision <- test_plan_revision(snapshot, manifest)
+  revision <- if (legacy) legacy_test_revision(snapshot) else test_plan_revision(snapshot, manifest)
   if (!is.null(replay)) { verify_replay_revision(revision, replay) }
-  plan <- test_case_plan(snapshot)
+  plan <- plan_test_cases(snapshot, legacy)
   fields <- c("id", "suite", "source", "path")
   if (!is.null(replay)) {
     recorded <- replay$case[fields]
@@ -152,11 +153,17 @@ run_case_evidence <- function(path, ids, download_fixtures, fixture_cache,
 
 test_plan_revision <- function(path, manifest) {
   regular <- !manifest$directory
-  input <- list(
-    paths = manifest$path,
-    contents = unname(tools::md5sum(file.path(path, manifest$path[regular]))),
-    regular = regular
-  )
+  hash_test_revision(manifest$path, file.path(path, manifest$path[regular]), regular)
+}
+
+legacy_test_revision <- function(path) {
+  files <- sort(as.character(fs::dir_ls(path, all = TRUE, recurse = TRUE)), method = "radix")
+  regular <- !dir.exists(files)
+  hash_test_revision(as.character(fs::path_rel(files, start = path)), files[regular], regular)
+}
+
+hash_test_revision <- function(paths, files, regular) {
+  input <- list(paths = paths, contents = unname(tools::md5sum(files)), regular = regular)
   if (anyNA(input$contents)) {
     cli::cli_abort("Could not fingerprint the package files.", call = NULL)
   }

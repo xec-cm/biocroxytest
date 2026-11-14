@@ -37,8 +37,10 @@ Testthat runs in a temporary package copy so the original snapshots stay
 intact. Use a full suite run to review or update snapshots and exercise
 custom suite runners. The copy requires ordinary files and directories,
 as in \code{\link[=check_generated_tests]{check_generated_tests()}}.
-The package is loaded from \code{path} in the current R session. To run a single
-case in an isolated process with a timeout, use \code{\link[=run_test_plan]{run_test_plan()}} with its ID.
+The package code is loaded from \code{path} in the current R session. pkgload
+can load code excluded by \code{.Rbuildignore}. Tests, helpers and fixtures run
+from the copy. To also load the package code from the filtered copy in an
+isolated process with a timeout, use \code{\link[=run_test_plan]{run_test_plan()}} with the case ID.
 }
 \examples{
 if (interactive()) run_test_case("arithmetic/small")

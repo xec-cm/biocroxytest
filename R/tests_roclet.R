@@ -16,6 +16,9 @@
 #'
 #' With custom roclets, use the default `clean = FALSE`. The generator
 #' removes obsolete tests after validating both suites on every run.
+#' Test output follows the case-insensitive `.Rbuildignore` rules. A direct
+#' roxygen2 run still uses its configured package loader and may load ignored
+#' sources before the test roclet runs.
 #'
 #' @return A roxygen2 roclet.
 #' @export
@@ -52,7 +55,7 @@ ensure_test_tag_parser <- function(class, parser) {
 #' @export
 roclet_process.roclet_biocroxytest_tests <- function(x, blocks, env, base_path) {
   check_test_roclets(resolved = TRUE)
-  blocks <- filter_test_blocks(blocks, base_path)
+  blocks <- select_test_blocks(blocks, base_path, env)
   cases <- collect_test_cases(blocks, check_origin = TRUE)
   results <- process_test_suites(blocks, c("tests", "longtests"), cases)
   results$testexamples <- process_test_examples(blocks, env, base_path)

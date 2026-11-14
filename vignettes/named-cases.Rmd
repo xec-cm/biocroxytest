@@ -105,8 +105,11 @@ includes `DESCRIPTION`, `NAMESPACE`, `.BBSoptions`, `.Rbuildignore`,
 `.Rinstignore`, license and build scripts, and the standard package
 directories `R`, `src`, `data`, `inst`, `man`, `vignettes`, `demo`, `po`,
 `tools` and `exec`. Build ignore patterns are matched without regard to
-case. Both test suites are retained in full, including helpers and local
-fixtures used only during development. Git metadata is excluded.
+case. Standard editor and native build artifacts are skipped in the usual
+package directories. Both test suites are retained in full, including helpers
+and local fixtures used only during development. Roxygen templates in
+`man-roxygen` and tooling in `man/roxygen` are also retained. Git metadata
+is excluded.
 
 If a test or roclet uses inputs outside those paths, declare each extra
 file or directory on its own line in the source package's `DESCRIPTION`.
@@ -120,8 +123,12 @@ Config/biocroxytest/inputs: dev/example-code.R
 
 Use existing paths relative to the package root. Retained paths must be
 ordinary files or directories. A declaration can retain build-excluded
-development inputs, while excluded R sources stay excluded. Older
-replay records continue to use the full-checkout fingerprint.
+development inputs, while excluded R sources stay excluded. Remove newly
+excluded files from any `Collate` fields before checking generated tests
+or installing the package. Direct calls to `roxygen2::roxygenise()` use
+roxygen2's configured loader, which can load ignored R files before the
+test roclet selects its sources. Older replay records continue to use
+the original source selection and full-checkout fingerprint.
 
 Set `timeout` in seconds to limit each isolated R process. A timeout
 leaves the case incomplete and the plan continues. The limit includes

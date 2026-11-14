@@ -89,6 +89,30 @@ test_that("identical messages from different assertions are different failures",
   expect_false(replayed$comparison$same_failure)
 })
 
+test_that("format 1 replay preserves old source selection and revision rules", {
+  source <- c(
+    "#' @testCases legacy",
+    "#' list(cases = list(old = list(suite = 'tests')), test = { expect_identical(answer(), 1L) })",
+    "answer <- function() 42L"
+  )
+  pkg <- new_evidence_package(source)
+  withr::defer(unlink(pkg, recursive = TRUE, expand = FALSE))
+  file <- withr::local_tempfile(fileext = ".rds")
+  report <- run_test_plan(pkg, seed = 42L)
+  # This spelling did not match when format 1 selected sources.
+  writeLines("^r/ANSWER[.]r$", file.path(pkg, ".Rbuildignore"))
+  writeLines("old revision input", file.path(pkg, "notes.txt"))
+  report$revision <- legacy_test_revision(pkg)
+  report$revision_format <- NULL
+  record <- write_test_replay(report, "legacy/old", file)
+
+  expect_identical(record$format, 1L)
+  expect_equal(nrow(test_case_plan(pkg)), 0L)
+  expect_true(replay_test_case(file, pkg)$comparison$same_failure)
+  writeLines("changed input", file.path(pkg, "notes.txt"))
+  expect_error(replay_test_case(file, pkg), class = "biocroxytest_replay_revision")
+})
+
 test_that("a replay uses the recorded fixture availability", {
   skip_if_not_installed("BiocFileCache")
   fixture <- withr::local_tempfile(lines = "fixture bytes")

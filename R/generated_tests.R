@@ -45,7 +45,9 @@ check_generated_tests <- function(path = ".") {
   path <- test_package_path(path)
   copy <- test_package_copy_path(path)
   on.exit(unlink(copy, recursive = TRUE, expand = FALSE), add = TRUE)
-  copy_test_package(path, copy)
+  manifest <- test_package_manifest(path)
+  check_test_collate(path, manifest)
+  copy_test_package(path, copy, manifest)
 
   before <- collect_test_inventory(copy)
   contents <- stats::setNames(lapply(file.path(copy, before$path), read_test_bytes), before$path)
@@ -81,6 +83,26 @@ test_package_path <- function(path) {
                    class = "biocroxytest_test_check_input", call = NULL)
   }
   fs::path_real(path)
+}
+
+check_test_collate <- function(path, manifest) {
+  sources <- test_r_sources(path)
+  excluded <- setdiff(sources, manifest$path)
+  if (!length(excluded)) { return(invisible(NULL)) }
+
+  fields <- c("Collate", "Collate.unix", "Collate.windows")
+  values <- read.dcf(file.path(path, "DESCRIPTION"), fields = fields)[1L, ]
+  listed <- unlist(lapply(values[!is.na(values)], function(value) {
+    scan(text = value, what = character(), quiet = TRUE)
+  }), use.names = FALSE)
+  stale <- intersect(paste0("R/", listed, recycle0 = TRUE), excluded)
+  if (length(stale)) {
+    cli::cli_abort(c(
+      "Excluded R sources are listed in {.file DESCRIPTION}: {.file {stale}}.",
+      i = "Remove them from the Collate fields before regenerating tests or installing the package."
+    ), class = "biocroxytest_test_check_input", call = NULL)
+  }
+  invisible(NULL)
 }
 
 collect_test_inventory <- function(path, suites = c("tests", "longtests")) {
@@ -139,7 +161,8 @@ regenerate_test_copy <- function(copy) {
     error = function(e) {
       cli::cli_abort(c(
         "Could not regenerate tests in the temporary package copy.",
-        i = "Run {.code roxygen2::roxygenise()} to diagnose the generation error."
+        i = "Run {.code roxygen2::roxygenise()} in the checkout to diagnose the error.",
+        i = "If that succeeds, declare any extra generation inputs in {.field Config/biocroxytest/inputs}."
       ), class = "biocroxytest_test_regeneration_error", parent = e, call = NULL)
     }
   )
