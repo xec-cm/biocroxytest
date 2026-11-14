@@ -149,6 +149,9 @@ jobs:
           )
         shell: Rscript {0}
 
+      - name: Check installed consumer
+        run: Rscript --vanilla .github/check-consumer.R
+
       - name: Measure test coverage
         if: runner.os == 'Linux'
         run: |
@@ -185,9 +188,41 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  consumer-compatibility:
+    name: Consumer checks (minimum versions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2
+        with:
+          r-version: '4.4.0'
+
+      - uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05 # v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: |
+            roxygen2@7.1.2
+            testthat@3.3.0
+            any::roxytest
+
+      - name: Verify versions and roclet compatibility
+        run: |
+          stopifnot(getRversion() == "4.4.0",
+                    utils::packageVersion("roxygen2") == "7.1.2",
+                    utils::packageVersion("testthat") == "3.3.0")
+          testthat::test_local(filter = "tests_roclet|testexamples",
+                               stop_on_failure = TRUE)
+        shell: Rscript {0}
+
+      - name: Check installed consumer
+        run: Rscript --vanilla .github/check-consumer.R
+
   deploy-pkgdown:
     name: Deploy pkgdown site
-    needs: build-check
+    needs: [build-check, consumer-compatibility]
     if: github.event_name == 'push' && github.ref == 'refs/heads/devel'
     runs-on: ubuntu-latest
     permissions:

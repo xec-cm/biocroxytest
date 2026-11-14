@@ -24,7 +24,7 @@ Imports:
     callr,
     cli,
     fs,
-    roxygen2,
+    roxygen2 (>= 7.1.2),
     withr
 Suggests: 
     BiocFileCache,
