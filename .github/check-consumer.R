@@ -4,6 +4,8 @@ check_consumer <- function() {
   consumer <- file.path(scratch, package)
   dir.create(file.path(consumer, "R"), recursive = TRUE)
   dir.create(file.path(consumer, "tests", "testthat"), recursive = TRUE)
+  dir.create(file.path(consumer, "inst", "extdata"), recursive = TRUE)
+  writeBin(charToRaw("3\n6\n"), file.path(consumer, "inst", "extdata", "expected.txt"))
   source <- file.path(consumer, "R", "increment.R")
   stopifnot(file.copy(".github/consumer/increment.R", source))
   writeLines(c(
@@ -14,7 +16,7 @@ check_consumer <- function() {
     "Description: A small fixture for checking generated ordinary and long tests.",
     "License: GPL (>= 3)",
     "Encoding: UTF-8",
-    "Suggests: testthat (>= 3.3.0)",
+    "Suggests: fs, testthat (>= 3.3.0)",
     "Config/testthat/edition: 3",
     'Roxygen: list(roclets = c("namespace", "rd", "biocroxytest::tests_roclet"))'
   ), file.path(consumer, "DESCRIPTION"))
@@ -37,15 +39,23 @@ check_consumer <- function() {
     "excluded <- function() TRUE"
   ), file.path(consumer, "R", "excluded.R"))
   roxygen2::roxygenise(consumer)
+  ids <- c("increment/ordinary", "increment/long")
+  evidence <- biocroxytest::run_test_plan(consumer, ids = ids, seed = 42L)
+  biocroxytest::check_test_plan(evidence, required = ids)
+  fixture <- file.path(consumer, "inst", "extdata", "expected.txt")
+  writeBin(charToRaw("3\n6\n7\n"), fixture)
+  changed <- biocroxytest::run_test_plan(consumer, ids = ids, seed = 42L)
+  stopifnot(all(changed$cases$status == "failed"), !identical(changed$revision, evidence$revision))
+  writeBin(charToRaw("3\n6\n"), fixture)
 
   # Stage only the consumer's test dependency and its required dependencies.
   consumer_lib <- file.path(scratch, "library")
   dir.create(consumer_lib)
   dependencies <- tools::package_dependencies(
-    "testthat", db = utils::installed.packages(),
+    c("fs", "testthat"), db = utils::installed.packages(),
     which = c("Depends", "Imports", "LinkingTo"), recursive = TRUE
   )
-  for (dependency in unique(c("testthat", dependencies$testthat))) {
+  for (dependency in unique(c(names(dependencies), unlist(dependencies, use.names = FALSE)))) {
     installed <- find.package(dependency)
     if (dirname(installed) == .Library) { next }
     stopifnot(file.copy(installed, consumer_lib, recursive = TRUE))
@@ -90,9 +100,9 @@ check_consumer <- function() {
       writeLines(log)
       expected <- if (suite == "tests") 3L else 2L
       result <- if (broken) {
-        sprintf("FAIL %d | WARN 0 | SKIP 0 | PASS 0", expected)
+        sprintf("FAIL %d | WARN 0 | SKIP 0 | PASS 2", expected)
       } else {
-        sprintf("FAIL 0 | WARN 0 | SKIP 0 | PASS %d", expected)
+        sprintf("FAIL 0 | WARN 0 | SKIP 0 | PASS %d", expected + 2L)
       }
       stopifnot((checked$status != 0L) == broken,
                 any(grepl(result, log, fixed = TRUE)))

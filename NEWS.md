@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Document how to share checked package fixtures between suites and compare
+  named case results across environments using existing APIs (#42, #43).
+
 * Add reusable checks and replay results for two historical DelayedArray
   regressions, including sparse conversion from a TENx HDF5 file (#40).
 
