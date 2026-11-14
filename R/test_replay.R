@@ -82,14 +82,15 @@ write_test_replay <- function(evidence, id, file) {
 
 #' @rdname write_test_replay
 #' @export
-replay_test_case <- function(file, path = ".", download_fixtures = FALSE, fixture_cache = NULL) {
+replay_test_case <- function(file, path = ".", download_fixtures = FALSE,
+                             fixture_cache = NULL, timeout = Inf) {
   validate_replay_file(file)
   record <- readRDS(file)
   validate_replay_record(record)
 
   result <- run_case_evidence(
     path, record$case$id, download_fixtures, fixture_cache,
-    record$context$seed, replay = record
+    record$context$seed, timeout, replay = record
   )
   current <- result$environments[[record$case$id]]
   fields <- names(record$environment)

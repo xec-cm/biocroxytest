@@ -1,5 +1,10 @@
 # biocroxytest (development version)
 
+* Add `check_test_plan()` to require completed cases in CI, with a policy
+  for recorded warnings (#35).
+* Share named-case execution and support time limits for isolated runners and
+  replay (#36).
+
 * Verify installed consumer tests in CI and require roxygen2 7.1.2 or newer
   for conditional examples (#34).
 

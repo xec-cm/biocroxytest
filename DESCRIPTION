@@ -24,6 +24,7 @@ Imports:
     callr,
     cli,
     fs,
+    ps (>= 1.8.0),
     roxygen2 (>= 7.1.2),
     withr
 Suggests: 

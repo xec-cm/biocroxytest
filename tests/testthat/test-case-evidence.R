@@ -63,6 +63,16 @@ test_that("execution evidence distinguishes full, failed and interrupted cases",
   )
   expect_identical(sort(cases$id), names(expected))
   expect_identical(cases$status[match(names(expected), cases$id)], unname(expected))
+  expect_true(check_test_plan(result, "evidence/a"))
+  error <- expect_error(
+    check_test_plan(result, c("evidence/a", "evidence/ab", "evidence/skipped",
+                              "evidence/partial", "evidence/absent")),
+    class = "biocroxytest_incomplete_test_plan"
+  )
+  for (line in c("evidence/ab: failed", "evidence/skipped: skipped",
+                "evidence/partial: incomplete", "evidence/absent: no result")) {
+    expect_match(conditionMessage(error), line, fixed = TRUE)
+  }
   expect_identical(anyDuplicated(cases$id), 0L)
   expect_true(all(c("id", "suite", "source", "path", "status", "duration", "detail") %in%
                     names(cases)))
@@ -128,6 +138,7 @@ test_that("missing, stale and setup failures cannot satisfy a planned case", {
   missing <- run_test_plan(pkg, ids = "revision/selected")
   expect_identical(missing$cases$id, "revision/selected")
   expect_identical(missing$cases$status, "missing")
+  expect_error(check_test_plan(missing, "revision/selected"), "revision/selected: missing")
   expect_length(missing$environments, 0L)
 
   writeLines(contents, generated)
@@ -178,4 +189,78 @@ test_that("suite hooks see the original generated file and cannot change the rec
   expect_identical(skipped$cases$status, "incomplete")
   expect_match(skipped$cases$detail, "suite setup unavailable")
   expect_named(skipped$environments, "revision/selected")
+})
+
+test_that("isolated case options are set after package loading", {
+  pkg <- new_evidence_package(evidence_revision_source())
+  withr::defer(unlink(pkg, recursive = TRUE))
+  writeLines(c(
+    ".onLoad <- function(libname, pkgname) {",
+    "  options(biocroxytest.case_event = NULL, biocroxytest.fixture_paths = NULL)",
+    "}"
+  ), file.path(pkg, "R", "onload.R"))
+  report <- run_test_plan(pkg, ids = "revision/selected")
+  expect_true(check_test_plan(report, "revision/selected"))
+})
+
+test_that("the CI policy distinguishes recorded and handled warnings", {
+  source <- c(
+    "#' @testCases warnings",
+    "#' list(cases = list(one = list(suite = 'tests')), test = {",
+    "#'   signalCondition(simpleWarning('case warning'))",
+    "#'   expect_warning(warning('handled warning'), 'handled warning')",
+    "#'   expect_true(TRUE)",
+    "#' })",
+    "answer <- function() 42L"
+  )
+  pkg <- new_evidence_package(source)
+  withr::defer(unlink(pkg, recursive = TRUE))
+  writeLines("warning('hook warning')", file.path(pkg, "tests", "testthat", "setup-warnings.R"))
+
+  report <- run_test_plan(pkg)
+  expect_identical(report$cases$status, "completed")
+  expect_identical(report$cases$warnings, 2L)
+  expect_match(report$cases$detail, "case warning")
+  expect_match(report$cases$detail, "hook warning")
+  expect_error(check_test_plan(report, "warnings/one"), "2 distinct warning")
+  expect_true(check_test_plan(report, "warnings/one", allow_warnings = TRUE))
+
+  report$cases$warnings <- NULL
+  expect_error(check_test_plan(report, "warnings/one"), "warning count unavailable")
+  expect_true(check_test_plan(report, "warnings/one", allow_warnings = TRUE))
+  expect_error(check_test_plan(report, character()), "at least one unique case ID")
+  expect_error(check_test_plan(report, rep("warnings/one", 2)), "unique case ID")
+  expect_error(check_test_plan(report, "warnings/one", allow_warnings = NA), "TRUE or FALSE")
+})
+
+test_that("a timed-out case is cleaned up and the plan continues", {
+  marker <- withr::local_tempfile()
+  source <- c(
+    "#' @testCases limits",
+    "#' list(cases = list(",
+    "#'   slow = list(suite = 'tests', setup = {",
+    paste0("#'     writeLines(tempdir(), ", encodeString(marker, quote = '"'), ")"),
+    "#'     Sys.sleep(60)",
+    "#'   }),",
+    "#'   next_case = list(suite = 'longtests')",
+    "#' ), test = { expect_identical(case_value(), 42L) })",
+    "answer <- function() 42L"
+  )
+  pkg <- new_evidence_package(source)
+  withr::defer(unlink(pkg, recursive = TRUE))
+  before <- evidence_package_contents(pkg)
+  ids <- c("limits/slow", "limits/next_case")
+
+  report <- run_test_plan(pkg, ids = ids, timeout = 8)
+  expect_identical(report$cases$id, ids)
+  expect_identical(report$cases$status, c("incomplete", "completed"))
+  expect_match(report$cases$detail[1L], "timed out after 8 seconds", fixed = TRUE)
+  expect_true(file.exists(marker))
+  expect_false(dir.exists(readLines(marker, warn = FALSE)))
+  expect_identical(report$cases$warnings, c(NA_integer_, 0L))
+  expect_error(check_test_plan(report, ids), "limits/slow: incomplete")
+  expect_true(check_test_plan(report, ids[2L]))
+  expect_identical(evidence_package_contents(pkg), before)
+  expect_error(run_test_plan(pkg, timeout = 0), "positive number of seconds")
+  expect_error(run_test_plan(pkg, timeout = 1e7), "positive number of seconds")
 })

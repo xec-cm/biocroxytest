@@ -100,6 +100,26 @@ assertion and no skips. The other states are `failed`, `skipped`,
 `incomplete` and `missing`. For example, stale generated code or a
 skip after a passing assertion is incomplete.
 
+Set `timeout` in seconds to limit each isolated R process. A timeout
+leaves the case incomplete and the plan continues. The limit includes
+package loading and suite hooks. Fixture preparation happens first.
+
+## Require cases in CI
+
+Pass the required IDs explicitly so a missing case fails the check.
+
+```{r require-cases, eval=FALSE}
+required <- c("arithmetic/small", "arithmetic/large")
+evidence <- biocroxytest::run_test_plan(ids = required, timeout = 60)
+biocroxytest::check_test_plan(evidence, required)
+```
+
+An uncaught error from either call gives a nonzero exit status in
+`Rscript`. The check requires `completed` and zero recorded warnings for
+each required case. Use `allow_warnings = TRUE` to accept recorded warnings
+for completed cases. Reports created before warning counts were recorded
+need a fresh run to satisfy the default policy.
+
 ## Replay a failed case
 
 If the case is `failed`, save its record outside the package tree so it

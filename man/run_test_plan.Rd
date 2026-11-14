@@ -9,7 +9,8 @@ run_test_plan(
   ids = NULL,
   download_fixtures = FALSE,
   fixture_cache = NULL,
-  seed = NULL
+  seed = NULL,
+  timeout = Inf
 )
 }
 \arguments{
@@ -25,11 +26,19 @@ user cache directory, \code{tools::R_user_dir("biocroxytest", "cache")}.}
 
 \item{seed}{An optional integer seed used independently for each selected
 case. With \code{NULL}, each case gets a seed in its own R process.}
+
+\item{timeout}{Maximum seconds for each isolated R process, including
+package loading and suite hooks. Defaults to \code{Inf}. Copying files and
+preparing fixtures take place before this limit starts. After a timeout
+the plan continues with the remaining cases. It attempts to stop child
+processes and records any cleanup error with the timeout. The maximum
+finite limit is \code{.Machine$integer.max / 1000} seconds.}
 }
 \value{
 A list with \code{revision}, a content fingerprint, \code{cases}, a data
 frame containing the selected case IDs, suites, paths, statuses,
-durations in seconds and diagnostics, and \code{environments}, the R
+durations in seconds, diagnostics and counts of distinct warning messages
+(\code{NA} when unavailable), and \code{environments}, the R
 version, platform, operating system, locale and loaded package versions
 observed at the end of execution, by case ID. The duration is elapsed
 time for the case, or elapsed runner time when execution is interrupted.
@@ -59,7 +68,7 @@ A case is \code{completed} when it reaches the end and records a passing
 expectation without skips. A failed expectation or test error gives
 \code{failed}. An explicit skip from the case body before any passes gives
 \code{skipped}. An early return, nested or partial skip, stale generated
-case or interrupted suite setup or teardown gives
+case, timed-out R process or interrupted suite setup or teardown gives
 \code{incomplete}. Absent generated files and absent case results give
 \code{missing}. The case file and its declared code must agree before it runs.
 }
@@ -69,4 +78,7 @@ dir.create(pkg)
 writeLines("Package: examplepkg", file.path(pkg, "DESCRIPTION"))
 run_test_plan(pkg)
 unlink(pkg, recursive = TRUE)
+}
+\seealso{
+\link[=check_test_plan]{check_test_plan()} to require completed cases in CI.
 }

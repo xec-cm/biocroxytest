@@ -21,6 +21,7 @@ reference:
   - compare_test_plans
   - run_test_case
   - run_test_plan
+  - check_test_plan
   - test_fixtures
 - title: Replay and reduce failures
   contents:
