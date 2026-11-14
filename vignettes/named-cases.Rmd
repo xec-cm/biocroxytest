@@ -152,6 +152,9 @@ need a fresh run to satisfy the default policy.
 
 ## Replay a failed case
 
+The [sample-alignment walkthrough](replay-walkthrough.html) runs a failing
+case, reproduces the failure from a replay record and checks the fix.
+
 If the case is `failed`, save its record outside the package tree so it
 does not change the source fingerprint.
 

@@ -1,5 +1,8 @@
 # biocroxytest (development version)
 
+* Add an executable sample-alignment walkthrough that records and replays
+  a failing named case and verifies the fix (#39).
+
 * Copy and fingerprint package and test inputs through a manifest, with
   opt-in paths for extra inputs and support for older replay records (#37).
 * Match build exclusions case-insensitively for test plans and roclets (#38).
